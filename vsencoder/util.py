@@ -1,12 +1,16 @@
 """
 Useful utility functions for encoders.
 """
+import math
+import multiprocessing as mp
 import os
 from functools import cache
 from pathlib import Path
-from typing import List
+from typing import Iterable, List
 
+import vapoursynth as vs
 from appdirs import AppDirs
+from vardautomation import get_vs_core as _get_vs_core
 
 __all__: List[str] = [
     'get_shader'
@@ -37,3 +41,17 @@ def get_shader(filename: str = 'FSRCNNX_x2_16-0-4-1.glsl',
         return str(mpv_dir)
     else:
         raise FileNotFoundError(f"get_shader: '{filename} could not be found!'")
+
+
+@cache
+def get_vs_core(threads: Iterable[int | None] = None,
+                max_cache_size: int | None = None,
+                reserve_core: bool = True) -> vs.Core:
+    """
+    Gets the VapourSynth singleton core for you through vardautomation with additional parameters.
+    """
+    if not threads:
+        threads_for_vs = math.ceil(mp.cpu_count() * 0.6)
+        threads = range(0, (threads_for_vs - 2) if reserve_core else range(0, threads_for_vs))
+
+    return _get_vs_core(threads, max_cache_size)
