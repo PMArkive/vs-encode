@@ -1,6 +1,8 @@
 """
 Helper functions used by `__main__`.
 """
+import math
+import multiprocessing as mp
 from typing import Any, List
 
 import vapoursynth as vs
@@ -22,11 +24,12 @@ def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> 
     return finalise_clip(clip, bits=bits, clamp_tv_range=tv_range)
 
 
-def resolve_ap_trims(trims: Range | List[Range], clip: vs.VideoNode | None = None) -> List[List[Any]]:
+def resolve_ap_trims(trims: Range | List[Range], clip: vs.VideoNode) -> List[List[Range]]:
     """Convert list[tuple] into list[list]. begna pls"""
     from lvsfunc.util import normalize_ranges
 
-    return list(normalize_ranges(clip, trims))
+    nranges = list(normalize_ranges(clip, trims))
+    return [list(trim) for trim in nranges]
 
 
 # TODO: Make this a proper function that accurately gets the channel layout.
@@ -43,3 +46,8 @@ def get_channel_layout_str(channels: int) -> str:
         return '7.1'
     else:
         raise ValueError("get_channel_layout_str: 'Current channel count unsupported!'")
+
+
+def get_encoder_cores() -> int:
+    """Returns the amount of cores to auto-relocate to the encoder"""
+    return math.ceil(mp.cpu_count() * 0.4)
