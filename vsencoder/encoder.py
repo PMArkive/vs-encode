@@ -78,6 +78,9 @@ class Encoder:
 
         # TODO: Support multiple languages for different tracks.
         if languages is not None:
+            if len(languages) < 3:
+                raise ValueError("Encoder.__init__: 'You must pass at least three (3) languages! "
+                                 f"Not {len(languages)}!'")
             self.v_language = languages[0]
             self.a_language = languages[1]
             self.c_language = languages[2]
@@ -86,7 +89,9 @@ class Encoder:
             self.a_language = self.va.JAPANESE
             self.c_language = self.va.JAPANESE
 
-        IniSetup(**setup_args)
+        init = IniSetup(**setup_args)
+
+        self.file.name_file_final = init.parse_name()
 
     def perform_cleanup(self, runner_object: SelfRunner | Patch) -> None:
         """
@@ -249,6 +254,7 @@ class Encoder:
         enc = encoder.lower()
 
         if enc in ('qaac', 'flac') and use_ap:
+            self.file.a_src_cut = VPath(self.file.name)
             is_aac = enc == 'qaac'
 
             self.audio_files = ap.video_source(
