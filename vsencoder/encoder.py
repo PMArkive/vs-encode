@@ -20,7 +20,37 @@ __all__: List[str] = [
 
 class Encoder:
     """
-    Encoding chain builder.
+    Video encoding chain builder.
+    There are multiple steps to video encoding and processing, and each is added as an individual step in this class.
+    These can be chained in any order, except for `run` which should be run at the end.
+
+    The following steps are included as methods:
+
+        * video
+        * audio
+        * chapter
+        * mux
+        * run
+
+    You can chain them together like so:
+        ``Encoder(file_obj, filtered_clip).video('x264').audio().mux().run()``
+
+    For arguments, see the individual methods.
+
+    The only one REQUIRED steps are `video` and `run`.
+
+    :param file:            FileInfo object.
+    :param clip:            VideoNode to use for the output.
+                            This should be the filtered clip, or in other words,
+                            the clip you want to encode as usual.
+    :param languages:       Languages for every track.
+                            If given a list, you can set individual languages per track.
+                            The first will always be the language of the video track.
+                            It's best to set this to your source's region.
+                            The second one is used for all Audio tracks.
+                            The third one will be used for chapters.
+                            If None, assumes Japanese for all tracks.
+    :param setup_args:      Kwargs for the ini file setup.
     """
     import vardautomation as va
 
@@ -59,20 +89,6 @@ class Encoder:
                  languages: Lang | List[Lang] | None = None,
                  **setup_args: Any
                  ) -> None:
-        """
-        :param file:            FileInfo object.
-        :param clip:            VideoNode to use for the output.
-                                This should be the filtered clip, or in other words,
-                                the clip you want to encode as usual.
-        :param languages:       Languages for every track.
-                                If given a list, you can set individual languages per track.
-                                The first will always be the language of the video track.
-                                It's best to set this to your source's region.
-                                The second one is used for all Audio tracks.
-                                The third one will be used for chapters.
-                                If None, assumes Japanese for all tracks.
-        :param setup_args:      Kwargs for the ini file setup.
-        """
         logger.success("Initializing vardautomation...\n")
         self.file = file
         self.clip = clip
@@ -429,7 +445,7 @@ class Encoder:
         for track in self.a_tracks:
             all_tracks += [track]
 
-        if track in self.c_tracks:
+        for track in self.c_tracks:
             all_tracks += [track]
 
         self.muxer = self.va.MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
