@@ -1,5 +1,7 @@
 VapourSynth>=58
 appdirs>=1.4.4
+git+https://github.com/begna112/bvsfunc.git
 lvsfunc>=0.4.1
+pymediainfo==5.1.0
 vardautomation==1.0.0
 vardefunc>=0.6.2
