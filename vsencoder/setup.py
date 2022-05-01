@@ -43,7 +43,7 @@ class IniSetup:
                 'reserve_core': False,
                 'show_name': self.get_show_name(caller_name, **showname_args)[0],
                 'output_dir': "Premux",
-                'output_name': custom_output_name or "$$_** (Premux)"
+                'output_name': custom_output_name or "$$_@@ (Premux)"
             }
 
             with open(config_name, 'w') as config_file:
@@ -89,7 +89,7 @@ class IniSetup:
 
         return file_name
 
-    def parse_name(self, key_name: str = '$$', key_ep: str = r'%%', key_version: str = '&&') -> Path:
+    def parse_name(self, key_name: str = '$$', key_ep: str = '@@', key_version: str = '&&') -> Path:
         """
         Converts a string to a proper path based on what's in the config file and __file__ name.
 
