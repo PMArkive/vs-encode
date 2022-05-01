@@ -1,0 +1,5 @@
+VapourSynth>=58
+appdirs>=1.4.4
+lvsfunc>=0.4.1
+vardautomation==1.0.0
+vardefunc>=0.6.2
