@@ -7,19 +7,24 @@ from typing import Any, List
 
 import vapoursynth as vs
 from lvsfunc.types import Range
+from lvsfunc.util import get_prop
 
 __all__: List[str] = [
     'finalize_clip',
     'resolve_ap_trims',
-    'get_channel_layout_str'
+    'get_channel_layout_str',
+    'get_encoder_cores'
 ]
 
 
-def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> vs.VideoNode:
+def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool | None = None) -> vs.VideoNode:
     """
     Finalizing clip for output.
     """
     from vardefunc.util import finalise_clip
+
+    if tv_range is None:
+        tv_range = get_prop(clip.get_frame(0), '_ColorRange', int) == 1
 
     return finalise_clip(clip, bits=bits, clamp_tv_range=tv_range)
 
