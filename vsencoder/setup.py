@@ -110,10 +110,11 @@ class IniSetup:
         return Path(self.output_dir + '/' + os.path.basename(output_name) + '.mkv')
 
 
-def init_project(project_name: str = None) -> None:
+def init_project() -> IniSetup:
     """
     Creates basic files used in conjunction with the rest of this package.
     """
-    IniSetup()
+    init = IniSetup()
     # TODO: Create basic encoding settings files
     # TODO: Create XML for AAC encoding
+    return init
