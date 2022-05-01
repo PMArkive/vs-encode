@@ -481,7 +481,13 @@ class Encoder:
         if self.qp_clip and not self.v_lossless_encoder:
             runner.inject_qpfile_params(qpfile_clip=self.qp_clip)
 
-        runner.run()
+        try:  # TODO: Figure out why this throws an error.
+            runner.run()
+        except:
+            if self.file.name_file_final.exists():
+                logger.warning("\nError during muxing, but file was muxed properly! Continuing...")
+            else:
+                logger.error(f"Error during muxing! File was not written. Exiting...")
 
         if clean_up:
             self.perform_cleanup(runner)
