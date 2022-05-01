@@ -1,14 +1,15 @@
 import os
 import shutil
-from copy import deepcopy
+from copy import copy
 from fractions import Fraction
 from typing import Any, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from vardautomation import (Chapter, FileInfo, Lang, Patch, SelfRunner, VPath,
-                            logger)
+                            logger, X264, X265)
 
-from .helpers import finalize_clip, get_channel_layout_str, resolve_ap_trims
+from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
+                      resolve_ap_trims)
 from .setup import IniSetup
 
 __all__: List[str] = [
@@ -146,9 +147,9 @@ class Encoder:
         enc = encoder.lower()
 
         if enc == 'x264':
-            self.v_encoder = self.va.X264(settings, zones=zones, **enc_overrides)
+            self.v_encoder = X264Custom(settings, zones=zones, **enc_overrides)
         elif enc == 'x265':
-            self.v_encoder = self.va.X265(settings, zones=zones, **enc_overrides)
+            self.v_encoder = X265Custom(settings, zones=zones, **enc_overrides)
         elif enc == 'nvencclossless':
             self.v_lossless_encoder = self.va.NVEncCLossless(**enc_overrides)
         elif enc == 'ffv1':
@@ -212,19 +213,14 @@ class Encoder:
                 from bvsfunc.util import AudioProcessor as ap
             except ModuleNotFoundError:
                 raise ModuleNotFoundError("Encoder.audio: missing dependency 'bvsfunc'")
-
-        try:
-            from pymediainfo import MediaInfo
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError("Encoder.audio: missing dependency 'pymediainfo'")
-
         else:
-            self.a_extracters = [
-                self.va.BasicTool('eac3to', [self.file.path.to_str(), '2:',
-                                             self.file.a_src.format(1).to_str(), '-log=NUL'])
-            ]
+            self.a_extracters = [self.va.Eac3toAudioExtracter(self.file)]
 
-        ea_clip = external_audio_clip  # Just making it shorter for convenience
+        self.file.a_src_cut = VPath(self.file.name)
+
+        # Just making it shorter for my own convenience
+        ea_clip = external_audio_clip
+        ea_file = external_audio_file
 
         if not custom_trims:
             trims = self.file.trims_or_dfs if not ea_clip else ea_clip.trims_or_dfs
@@ -232,19 +228,17 @@ class Encoder:
             trims = custom_trims
 
         if isinstance(fps, int) or isinstance(fps, float):
-            fps = Fraction(fps, 1)
+            fps = Fraction(fps, 1)  # TODO: Automagically shift decimal point if applicable (23.976 -> 23976)
 
-        file_copy = deepcopy(self.file)
+        file_copy = copy(self.file)
 
         if not use_ap:
             file_copy.trims_or_dfs = trims
 
-        media_info = MediaInfo.parse(self.file.path)
-
         track_channels: List[int] = []
         original_codecs: List[str] = []
 
-        for track in media_info.tracks:
+        for track in self.file.media_info.tracks:
             if track.track_type == 'Audio':
                 track_channels += [track.channel_s]
                 original_codecs += [track.format]
@@ -254,25 +248,26 @@ class Encoder:
         enc = encoder.lower()
 
         if enc in ('qaac', 'flac') and use_ap:
-            self.file.a_src_cut = VPath(self.file.name)
             is_aac = enc == 'qaac'
+            audio_codec_str: str = 'AAC' if is_aac else 'FLAC'
+
+            if any([ea_clip, ea_file]):
+                ea_file = ea_file or ea_clip.path.to_str()
 
             self.audio_files = ap.video_source(
-                in_file=external_audio_file or self.file.path.to_str(),
+                in_file=ea_file or self.file.path.to_str(),
                 out_file=self.file.a_src_cut,
-                trim_list=resolve_ap_trims(trims),
+                trim_list=resolve_ap_trims(trims, self.clip if not ea_clip else ea_clip),
                 trims_framerate=fps or self.file.clip.fps if not ea_clip else ea_clip.clip.fps,
                 frames_total=self.file.clip.num_frames if not ea_clip else ea_clip.clip.num_frames,
                 flac=not is_aac, aac=is_aac, silent=False, **enc_overrides
             )
 
-            audio_codec_str: str = 'AAC' if is_aac else 'FLAC'
-
             for i, (track, channels) in enumerate(zip(self.audio_files, track_channels)):
                 self.a_tracks += [
                     self.va.AudioTrack(
                         VPath(track), f'{audio_codec_str} {get_channel_layout_str(channels)}',
-                        self.a_language, xml_file if is_aac else None)
+                        self.a_language, xml_file if is_aac else None, tid=i)
                 ]
                 if not all_tracks:
                     break
@@ -368,7 +363,7 @@ class Encoder:
         self.muxer = self.va.MatroskaFile(
             self.file.name_file_final,
             [
-                self.va.VideoTrack(self.file.name_clip_output, encoder_credit, self.v_language),
+                self.va.VideoTrack(self.file.name_clip_output.to_str(), encoder_credit, self.v_language),
                 self.a_tracks, self.chapters
             ], '--ui-language', 'en'
         )
@@ -441,3 +436,19 @@ class Encoder:
 
         if clean_up:
             self.perform_cleanup(runner)
+
+
+class X264Custom(X264):
+    thread: int | str = str(get_encoder_cores())
+
+    def set_variable(self) -> Dict[str, Any]:
+        """Also replaces ``{thread:s}``"""
+        return super().set_variable() | dict(thread=str(self.thread))
+
+
+class X265Custom(X265):
+    pools: int | str = str(get_encoder_cores())
+
+    def set_variable(self) -> Dict[str, Any]:
+        """Also replaces ``{thread:s}``"""
+        return super().set_variable() | dict(pools=str(self.thread))
