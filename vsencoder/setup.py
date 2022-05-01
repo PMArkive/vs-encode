@@ -24,7 +24,10 @@ class IniSetup:
     Class that handles all the basic filename settings of the project,
     including parsing and generating ini files.
     """
-    def __init__(self, custom_name: str | None = None, custom_args: Dict[str, Any] = {}) -> None:
+    def __init__(self, custom_name: str | None = None,
+                 custom_args: Dict[str, Any] = {},
+                 showname_args: Dict[str, Any] = {},
+                 custom_output_name: str | None = None) -> None:
         """
         Obtain the settings from the config.ini file (or custom name) if it exists, else create ini file.
 
@@ -38,9 +41,9 @@ class IniSetup:
             config['SETTINGS'] = {
                 'bdmv_dir': "BDMV",
                 'reserve_core': False,
-                'show_name': caller_name,
+                'show_name': self.get_show_name(caller_name, **showname_args)[0],
                 'output_dir': "Premux",
-                'output_name': "$$_** (Premux)"
+                'output_name': custom_output_name or "$$_** (Premux)"
             }
 
             with open(config_name, 'w') as config_file:
@@ -105,3 +108,12 @@ class IniSetup:
             output_name = output_name.replace(key_version, f"v{version}")
 
         return Path(self.output_dir + '/' + os.path.basename(output_name) + '.mkv')
+
+
+def init_project(project_name: str = None) -> None:
+    """
+    Creates basic files used in conjunction with the rest of this package.
+    """
+    IniSetup()
+    # TODO: Create basic encoding settings files
+    # TODO: Create XML for AAC encoding

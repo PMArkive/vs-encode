@@ -3,7 +3,7 @@ Helper functions used by `__main__`.
 """
 from typing import Any, List
 
-import Vapoursynth as vs
+import vapoursynth as vs
 from lvsfunc.types import Range
 
 __all__: List[str] = [

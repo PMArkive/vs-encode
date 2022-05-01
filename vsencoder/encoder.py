@@ -27,7 +27,7 @@ class Encoder:
     clip: vs.VideoNode
     clean_up: bool
 
-    # Language for every stream
+    # Language for every track
     v_language: Lang
     a_language: Lang
     c_language: Lang
@@ -51,7 +51,7 @@ class Encoder:
     audio_files: List[str] = []
 
     # Chapters-related vars
-    chapters: va.ChapterStream | None = None
+    chapters: va.ChaptersTrack | None = None
 
     def __init__(self,
                  file: FileInfo,
@@ -68,9 +68,9 @@ class Encoder:
                                 If given a list, you can set individual languages per track.
                                 The first will always be the language of the video track.
                                 It's best to set this to your source's region.
-                                The second one is used for all Audio streams.
+                                The second one is used for all Audio tracks.
                                 The third one will be used for chapters.
-                                If None, assumes Japanese for all streams.
+                                If None, assumes Japanese for all tracks.
         :param setup_args:      Kwargs for the ini file setup.
         """
         self.file = file
@@ -354,7 +354,7 @@ class Encoder:
 
         :param encoder_credit:      Name of the person encoding the video.
                                     For example: `encoder_name=LightArrowsEXE@Kaleido`.
-                                    This will be included in the video stream metadata.
+                                    This will be included in the video track metadata.
         """
         if encoder_credit:
             encoder_credit = f"Original encode by {encoder_credit}"
