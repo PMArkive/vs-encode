@@ -487,7 +487,7 @@ class Encoder:
             if self.file.name_file_final.exists():
                 logger.warning("\nError during muxing, but file was muxed properly! Continuing...")
             else:
-                logger.error(f"Error during muxing! File was not written. Exiting...")
+                logger.error(f"\nError during muxing! No file was written. Exiting...")
 
         if clean_up:
             self.perform_cleanup(runner)
