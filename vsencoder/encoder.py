@@ -86,7 +86,7 @@ class Encoder:
 
     def __init__(self, file: FileInfo, clip: vs.VideoNode, /, lang: Lang | List[Lang] = JAPANESE,
                  **setup_args: Any) -> None:
-        logger.success(f"Initializing vardautomation environent for {file.name}...\n")
+        logger.success(f"Initializing vardautomation environent for {file.name}...")
         self.file = file
         self.clip = clip
 
@@ -312,7 +312,7 @@ class Encoder:
                     self.a_tracks += [
                         self.va.AudioTrack(
                             VPath(track), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
-                            self.a_lang, i, '--tags', f'0:{xml_file.to_str()}')
+                            self.a_lang, i, '--tags', f'0:{str(xml_file)}')
                     ]
                 else:
                     self.a_tracks += [
@@ -344,7 +344,7 @@ class Encoder:
                         self.va.AudioTrack(
                             self.file.a_enc_cut.set_track(1),
                             f"AAC {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0, '--tags', f'0:{xml_file.to_str()}')
+                            self.a_lang, 0, '--tags', f'0:{str(xml_file)}')
                     ]
                 case 'flac':
                     logger.info("Audio codec: flac (FLAC)")
