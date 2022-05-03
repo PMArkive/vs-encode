@@ -11,7 +11,7 @@ from vardautomation.utils import Properties
 
 from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
                       resolve_ap_trims)
-from .setup import IniSetup
+from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
 from .types import AUDIO_ENCODER, VIDEO_ENCODER
 
 __all__: List[str] = [
@@ -154,6 +154,7 @@ class Encoder:
             zones = dict(sorted(zones.items(), key=lambda item: item[1]))
 
         if settings is None:
+            # TODO: Automatically generate a settings file
             logger.warning("video: 'No settings file given. Will automatically generate one for you. "
                            "To disable this behaviour, pass `settings=False`.")
 

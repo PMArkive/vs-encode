@@ -19,6 +19,14 @@ __all__: List[str] = [
 caller_name = sys.argv[0]
 
 
+def XmlGenerator() -> None:
+    ...
+
+
+def VEncSettingsSetup() -> None:
+    ...
+
+
 class IniSetup:
     """
     Class that handles all the basic filename settings of the project,
@@ -115,6 +123,7 @@ def init_project() -> IniSetup:
     Creates basic files used in conjunction with the rest of this package.
     """
     init = IniSetup()
-    # TODO: Create basic encoding settings files
-    # TODO: Create XML for AAC encoding
+    VEncSettingsSetup()
+    XmlGenerator()
+
     return init
