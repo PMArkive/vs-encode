@@ -5,8 +5,8 @@ from fractions import Fraction
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 import vapoursynth as vs
-from vardautomation import (X264, X265, Chapter, FileInfo, Lang, Patch,
-                            SelfRunner, VPath, logger)
+from vardautomation import (JAPANESE, X264, X265, Chapter, FileInfo, Lang,
+                            Patch, SelfRunner, VPath, logger)
 from vardautomation.utils import Properties
 
 from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
