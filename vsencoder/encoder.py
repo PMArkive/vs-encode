@@ -86,7 +86,7 @@ class Encoder:
 
     def __init__(self, file: FileInfo, clip: vs.VideoNode, /, lang: Lang | List[Lang] = JAPANESE,
                  **setup_args: Any) -> None:
-        logger.success("Initializing vardautomation...\n")
+        logger.success(f"Initializing vardautomation environent for {file.name}...\n")
         self.file = file
         self.clip = clip
 
@@ -124,8 +124,8 @@ class Encoder:
         logger.info("Cleaning up leftover files done!")
 
     def video(self, encoder: VIDEO_ENCODER = 'x265', settings: str | bool | None = None,
-              zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-              /, *, sanitize_output: bool = True, use_qp: bool = True, qp_clip: vs.VideoNode | None = None,
+              /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
+              *, sanitize_output: bool = True, use_qp: bool = True, qp_clip: vs.VideoNode | None = None,
               prefetch: int | None = None, resumable: bool = True, **enc_overrides: Any) -> "Encoder":
         """
         Basic video-related setup for the output video.
@@ -184,8 +184,8 @@ class Encoder:
         return self
 
     # TODO: Add `all_tracks` support to internal vardoto extracters/encoders/trimmers.
-    def audio(self, encoder: AUDIO_ENCODER = 'qaac', xml_file: str | None = None,
-              /, all_tracks: bool = False, use_ap: bool = True,
+    def audio(self, encoder: AUDIO_ENCODER = 'qaac',
+              /, xml_file: str | None = None,  all_tracks: bool = False, use_ap: bool = True,
               *, fps: Fraction | float | None = None,
               custom_trims: List[int | None] | List[List[int | None]] | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
