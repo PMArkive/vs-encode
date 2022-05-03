@@ -12,6 +12,7 @@ from vardautomation.utils import Properties
 from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
                       resolve_ap_trims)
 from .setup import IniSetup
+from .types import AUDIO_ENCODER, VIDEO_ENCODER
 
 __all__: List[str] = [
     'Encoder'
@@ -37,7 +38,7 @@ class Encoder:
 
     For arguments, see the individual methods.
 
-    The only one REQUIRED steps are `video` and `run`.
+    The only REQUIRED steps are `video` and `run`.
 
     :param file:            FileInfo object.
     :param clip:            VideoNode to use for the output.
@@ -60,9 +61,9 @@ class Encoder:
     clean_up: bool
 
     # Language for every track
-    v_language: Lang
-    a_language: Lang
-    c_language: Lang
+    v_lang: Lang
+    a_lang: Lang
+    c_lang: Lang
 
     # Generic Muxer vars
     v_encoder: va.VideoEncoder
@@ -83,28 +84,24 @@ class Encoder:
     external_audio: bool = True
     audio_files: List[str] = []
 
-    def __init__(self,
-                 file: FileInfo,
-                 clip: vs.VideoNode,
-                 languages: Lang | List[Lang] | None = None,
-                 **setup_args: Any
-                 ) -> None:
+    def __init__(self, file: FileInfo, clip: vs.VideoNode, /, lang: Lang | List[Lang] = JAPANESE,
+                 **setup_args: Any) -> None:
         logger.success("Initializing vardautomation...\n")
         self.file = file
         self.clip = clip
 
         # TODO: Support multiple languages for different tracks.
-        if languages is not None:
-            if len(languages) < 3:
-                raise ValueError("Encoder.__init__: 'You must pass at least three (3) languages! "
-                                 f"Not {len(languages)}!'")
-            self.v_language = languages[0]
-            self.a_language = languages[1]
-            self.c_language = languages[2]
-        else:
-            self.v_language = self.va.JAPANESE
-            self.a_language = self.va.JAPANESE
-            self.c_language = self.va.JAPANESE
+        if isinstance(lang, self.va.Lang):
+            self.v_lang = lang
+            self.a_lang = lang
+            self.c_lang = lang
+        elif len(lang) < 3:
+            raise ValueError("Encoder: 'You must pass at least three (3) languages! "
+                                f"Not {len(lang)}!'")
+        elif len(lang) >= 3:
+            self.v_lang = lang[0]
+            self.a_lang = lang[1]
+            self.c_lang = lang[2]
 
         init = IniSetup(**setup_args)
 
@@ -126,17 +123,10 @@ class Encoder:
 
         logger.info("Cleaning up leftover files done!")
 
-    def video(self,
-              encoder: str = 'x265',
-              settings: str = '.settings/settings.txt',
-              sanitize_output: bool = True,
-              use_qp: bool = True,
-              qp_clip: vs.VideoNode | None = None,
-              prefetch: int | None = None,
-              resumable: bool = True,
+    def video(self, encoder: VIDEO_ENCODER = 'x265', settings: str | bool | None = None,
               zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-              enc_overrides: Dict[str, Any] = {}
-              ) -> "Encoder":
+              /, *, sanitize_output: bool = True, use_qp: bool = True, qp_clip: vs.VideoNode | None = None,
+              prefetch: int | None = None, resumable: bool = True, **enc_overrides: Any) -> "Encoder":
         """
         Basic video-related setup for the output video.
 
@@ -163,20 +153,20 @@ class Encoder:
         if zones:
             zones = dict(sorted(zones.items(), key=lambda item: item[1]))
 
+        if settings is None:
+            logger.warning("video: 'No settings file given. Will automatically generate one for you. "
+                           "To disable this behaviour, pass `settings=False`.")
+
         # TODO: Use proper intenums, match case?
         enc = encoder.lower()
 
-        if enc == 'x264':
-            self.v_encoder = X264Custom(settings, zones=zones, **enc_overrides)
-        elif enc == 'x265':
-            self.v_encoder = X265Custom(settings, zones=zones, **enc_overrides)
-        elif enc == 'nvencclossless':
-            self.v_lossless_encoder = self.va.NVEncCLossless(**enc_overrides)
-        elif enc == 'ffv1':
-            self.v_lossless_encoder = self.va.FFV1(**enc_overrides)
-        else:
-            raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid video encoder! "
-                             "Please see the docstring for valid encoders!'")
+        match enc:
+            case 'x264': self.v_encoder = X264Custom(settings, zones=zones, **enc_overrides)
+            case 'x265': self.v_encoder = X265Custom(settings, zones=zones, **enc_overrides)
+            case 'nvencclossless': self.v_lossless_encoder = self.va.NVEncCLossless(**enc_overrides)
+            case 'ffv1': self.v_lossless_encoder = self.va.FFV1(**enc_overrides)
+            case _:  raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid video encoder! "
+                                    "Please see the docstring for valid encoders!'")
 
         logger.info(f"Encoding video using {enc}.")
 
@@ -193,18 +183,12 @@ class Encoder:
         return self
 
     # TODO: Add `all_tracks` support to internal vardoto extracters/encoders/trimmers.
-    def audio(self,
-              encoder: str = 'qaac',
-              all_tracks: bool = False,
-              use_ap: bool = True,
-              xml_file: str | None = None,
-              fps: Fraction | float | None = None,
+    def audio(self, encoder: AUDIO_ENCODER = 'qaac', xml_file: str | None = None,
+              /, all_tracks: bool = False, use_ap: bool = True,
+              *, fps: Fraction | float | None = None,
               custom_trims: List[int | None] | List[List[int | None]] | None = None,
-              external_audio_file: str | None = None,
-              external_audio_clip: vs.VideoNode | None = None,
-              cut_overrides: Dict[str, Any] = {},
-              enc_overrides: Dict[str, Any] = {}
-              ) -> "Encoder":
+              external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
+              cut_overrides: Dict[str, Any] = {}, enc_overrides: Dict[str, Any] = {}) -> "Encoder":
         """
         Basic audio-related setup for the output audio.
 
@@ -289,7 +273,7 @@ class Encoder:
 
         enc = encoder.lower()
 
-        # These codecs get re-encoded by all the extracters, making a simple passthrough impossible.
+        # These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
         reenc_codecs: List[str] = [
             'AC-3', 'EAC-3'
         ]
@@ -327,81 +311,79 @@ class Encoder:
                     self.a_tracks += [
                         self.va.AudioTrack(
                             VPath(track), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
-                            self.a_language, i, '--tags', f'0:{xml_file.to_str()}')
+                            self.a_lang, i, '--tags', f'0:{xml_file.to_str()}')
                     ]
                 else:
                     self.a_tracks += [
                         self.va.AudioTrack(
                             VPath(track), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
-                            self.a_language, i)
+                            self.a_lang, i)
                     ]
 
                 if not all_tracks:
                     break
-        elif enc == 'passthrough':
-            logger.info(f"Audio codec: {original_codecs[0]}")
-            self.a_cutters = [self.va.PassthroughCutter(file_copy, track=-1, **cut_overrides)]
-            self.a_encoders = None
-            self.a_extracters = self.va.Eac3toAudioExtracter(file_copy, track_in=-1, track_out=-1)
-            self.a_tracks += [
-                self.va.AudioTrack(
-                    self.file.a_src_cut,
-                    f"{original_codecs[0].upper()} {get_channel_layout_str(track_channels[0])}",
-                    self.a_language, 0)
-            ]
-        elif enc == 'qaac':
-            logger.info("Audio codec: aac (QAAC)")
-            self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
-            self.a_encoders = [self.va.QAACEncoder(file_copy, track=1, xml_tag=self.xml_tags, **enc_overrides)]
-            self.a_tracks += [
-                self.va.AudioTrack(
-                    self.file.a_enc_cut.set_track(1),
-                    f"AAC {get_channel_layout_str(track_channels[0])}",
-                    self.a_language, 0, '--tags', f'0:{xml_file.to_str()}')
-            ]
-        elif enc == 'flac':
-            logger.info("Audio codec: flac (FLAC)")
-            self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
-            self.a_encoders = [self.va.FlacEncoder(file_copy, track=1, **enc_overrides)]
-            self.a_tracks += [
-                self.va.AudioTrack(
-                    self.file.a_enc_cut.set_track(1),
-                    f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
-                    self.a_language, 0)
-            ]
-        elif enc == 'opus':
-            logger.info("Audio codec: opus (libopus)")
-            self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
-            self.a_encoders = [self.va.OpusEncoder(file_copy, track=1, **enc_overrides)]
-            self.a_tracks += [
-                self.va.AudioTrack(
-                    self.file.a_enc_cut.set_track(1),
-                    f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
-                    self.a_language, 0)
-            ]
-        elif enc == 'fdkaac':
-            logger.info("Audio codec: aac (FDKAAC)")
-            self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
-            self.a_encoders = [self.va.FDKAACEncoder(file_copy, track=1, **enc_overrides)]
-            self.a_tracks += [
-                self.va.AudioTrack(
-                    self.file.a_enc_cut.set_track(1),
-                    f"AAC {get_channel_layout_str(track_channels[0])}",
-                    self.a_language, 0)
-            ]
         else:
-            raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid audio encoder! "
-                             "Please see the docstring for valid encoders!'")
+            match enc:
+                case 'passthrough':
+                    logger.info(f"Audio codec: {original_codecs[0]}")
+                    self.a_cutters = [self.va.PassthroughCutter(file_copy, track=-1, **cut_overrides)]
+                    self.a_encoders = None
+                    self.a_extracters = self.va.Eac3toAudioExtracter(file_copy, track_in=-1, track_out=-1)
+                    self.a_tracks += [
+                        self.va.AudioTrack(
+                            self.file.a_src_cut,
+                            f"{original_codecs[0].upper()} {get_channel_layout_str(track_channels[0])}",
+                            self.a_lang, 0)
+                    ]
+                case 'qaac':
+                    logger.info("Audio codec: aac (QAAC)")
+                    self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
+                    self.a_encoders = [self.va.QAACEncoder(file_copy, track=1, xml_tag=self.xml_tags, **enc_overrides)]
+                    self.a_tracks += [
+                        self.va.AudioTrack(
+                            self.file.a_enc_cut.set_track(1),
+                            f"AAC {get_channel_layout_str(track_channels[0])}",
+                            self.a_lang, 0, '--tags', f'0:{xml_file.to_str()}')
+                    ]
+                case 'flac':
+                    logger.info("Audio codec: flac (FLAC)")
+                    self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
+                    self.a_encoders = [self.va.FlacEncoder(file_copy, track=1, **enc_overrides)]
+                    self.a_tracks += [
+                        self.va.AudioTrack(
+                            self.file.a_enc_cut.set_track(1),
+                            f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
+                            self.a_lang, 0)
+                    ]
+                case 'opus':
+                    logger.info("Audio codec: opus (libopus)")
+                    self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
+                    self.a_encoders = [self.va.OpusEncoder(file_copy, track=1, **enc_overrides)]
+                    self.a_tracks += [
+                        self.va.AudioTrack(
+                            self.file.a_enc_cut.set_track(1),
+                            f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
+                            self.a_lang, 0)
+                    ]
+                case 'fdkaac':
+                    logger.info("Audio codec: aac (FDKAAC)")
+                    self.a_cutters = [self.va.SoxCutter(file_copy, track=1, **cut_overrides)]
+                    self.a_encoders = [self.va.FDKAACEncoder(file_copy, track=1, **enc_overrides)]
+                    self.a_tracks += [
+                        self.va.AudioTrack(
+                            self.file.a_enc_cut.set_track(1),
+                            f"AAC {get_channel_layout_str(track_channels[0])}",
+                            self.a_lang, 0)
+                    ]
+                case _: raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid audio encoder! "
+                                        "Please see the docstring for valid encoders!'")
 
         del file_copy
 
         return self
 
-    def chapters(self,
-                 chapter_list: List[Chapter] | None = None,
-                 chapter_offset: int | None = None,
-                 chapter_names: Sequence[str] | None = None
-                 ) -> "Encoder":
+    def chapters(self, chapter_list: List[Chapter] | None = None, chapter_offset: int | None = None,
+                 chapter_names: Sequence[str] | None = None) -> "Encoder":
         """
         Basic chapter-related setup for the output chapters.
 
@@ -419,7 +401,7 @@ class Encoder:
         chapxml.shift_times(chapter_offset, self.file.clip.fps)  # type: ignore
         chapxml.set_names(chapter_names)
 
-        self.c_tracks += [self.va.ChaptersTrack(chapxml.chapter_file, self.c_language)]
+        self.c_tracks += [self.va.ChaptersTrack(chapxml.chapter_file, self.c_lang)]
 
         return self
 
@@ -438,8 +420,8 @@ class Encoder:
             encoder_credit = f"Original encode by {encoder_credit}"
 
         # Adding all the tracks
-        all_tracks: List[self.va.AnyPath | self.va.Track | Iterable[AnyPath | self.va.Track] | None] = [
-            self.va.VideoTrack(self.file.name_clip_output.to_str(), encoder_credit, self.v_language)
+        all_tracks: List[self.va.AnyPath | self.va.Track | Iterable[self.va.AnyPath | self.va.Track] | None] = [
+            self.va.VideoTrack(self.file.name_clip_output.to_str(), encoder_credit, self.v_lang)
         ]
 
         for track in self.a_tracks:
@@ -452,7 +434,7 @@ class Encoder:
 
         return self
 
-    def run(self, clean_up: bool = True, order: str = 'video') -> None:
+    def run(self, clean_up: bool = True, /, order: str = 'video') -> None:
         """
         Final runner method. This should be used AFTER setting up all the other details.
 
@@ -483,21 +465,17 @@ class Encoder:
 
         try:  # TODO: Figure out why this throws an error.
             runner.run()
-        except:
+        except Exception:
             if self.file.name_file_final.exists():
                 logger.warning("\nError during muxing, but file was muxed properly! Continuing...")
             else:
-                logger.error(f"\nError during muxing! No file was written. Exiting...")
+                logger.error("\nError during muxing! No file was written. Exiting...")
 
         if clean_up:
             self.perform_cleanup(runner)
 
-    def patch(self,
-              ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
-              external_file: os.PathLike[str] | str | None = None,
-              output_filename: str | None = None,
-              clean_up: bool = True
-              ) -> None:
+    def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
+              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None) -> None:
         """
         Patching method. This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!

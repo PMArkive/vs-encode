@@ -2,11 +2,16 @@
 Generic types.
 """
 from enum import IntEnum
-from typing import List
+from typing import List, Literal
 
 __all__: List[str] = [
     'EncodersEnum'
 ]
+
+
+# TODO: Replace with proper enums
+VIDEO_ENCODER = Literal['x264', 'x265', 'nvencclossless', 'ffv1']
+AUDIO_ENCODER = Literal['passthrough', 'qaac', 'opus', 'fdkaac', 'flac']
 
 
 class EncodersEnum(IntEnum):
