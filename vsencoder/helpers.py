@@ -41,18 +41,24 @@ def resolve_ap_trims(trims: Range | List[Range], clip: vs.VideoNode) -> List[Lis
 #       Improving this function should be a priority!!!
 def get_channel_layout_str(channels: int) -> str:
     """Very basic channel layout picker for AudioTracks"""
-    if channels == 2:
-        return '2.0'
-    elif channels == 5:
-        return '5.1'
-    elif channels == 1:
-        return '1.0'
-    elif channels == 7:
-        return '7.1'
-    else:
-        raise ValueError("get_channel_layout_str: 'Current channel count unsupported!'")
+    match channels:
+        case 2: return '2.0'
+        case 5: return '5.1'
+        case 1: return '1.0'
+        case 7: return '7.1'
+        case _: raise ValueError("get_channel_layout_str: 'Current channel count unsupported!'")
 
 
 def get_encoder_cores() -> int:
     """Returns the amount of cores to auto-relocate to the encoder"""
     return math.ceil(mp.cpu_count() * 0.4)
+
+
+def x264_get_matrix_str(matrix: str) -> str:
+    match matrix:
+        case 1: return 'bt709'
+        case 2: return 'undef'
+        case 5: return 'bt470m'
+        case 6: return 'smpte170m'
+        case 7: return 'smpte240m'
+        case _: raise ValueError("x264_get_matrix_str: 'Invalid matrix passed!'")

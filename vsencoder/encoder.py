@@ -10,7 +10,7 @@ from vardautomation import (JAPANESE, X264, X265, Chapter, FileInfo, Lang,
 from vardautomation.utils import Properties
 
 from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
-                      resolve_ap_trims)
+                      resolve_ap_trims, x264_get_matrix_str)
 from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
 from .types import AUDIO_ENCODER, VIDEO_ENCODER
 
@@ -219,7 +219,8 @@ class Encoder:
             try:
                 from bvsfunc.util import AudioProcessor as ap
             except ModuleNotFoundError:
-                raise ModuleNotFoundError("Encoder.audio: missing dependency 'bvsfunc'")
+                raise ModuleNotFoundError("Encoder.audio: missing dependency 'bvsfunc'. "
+                                          "Please install it at https://github.com/begna112/bvsfunc.")
         else:
             self.a_extracters = [self.va.Eac3toAudioExtracter(self.file)]
 
@@ -533,9 +534,9 @@ class X264Custom(X264):
     def set_variable(self) -> Dict[str, Any]:
         return super().set_variable() | dict(
             thread=get_encoder_cores(),
-            matrix=self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int),
-            primaries=self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int),
-            transfer=self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int))
+            matrix=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int)),
+            primaries=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int)),
+            transfer=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int)))
 
 
 class X265Custom(X265):

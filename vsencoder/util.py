@@ -18,8 +18,7 @@ __all__: List[str] = [
 
 
 @cache
-def get_shader(filename: str = 'FSRCNNX_x2_16-0-4-1.glsl',
-               file_dir: str = '.shaders') -> str:
+def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
     """
     Obtain a shader file for libplacebo-based filtering.
 
@@ -32,7 +31,7 @@ def get_shader(filename: str = 'FSRCNNX_x2_16-0-4-1.glsl',
                         the shader from the mpv directory.
                         Default: '.shaders'
     """
-    in_cwd = Path(os.path.join(os.getcwd(), f"{file_dir}/{filename}"))
+    in_cwd = Path(os.path.join(os.getcwd(), filename))
     mpv_dir = Path(AppDirs().user_data_dir).parents[0] / f"Roaming/mpv/shaders/{filename}"
 
     if in_cwd.is_file():
