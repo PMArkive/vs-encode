@@ -8,7 +8,7 @@ import os
 import sys
 from configparser import ConfigParser
 from glob import glob
-from pathlib import Path
+from vardautomation import VPath
 from typing import Any, Dict, List
 
 __all__: List[str] = [
@@ -32,8 +32,11 @@ class IniSetup:
     Class that handles all the basic filename settings of the project,
     including parsing and generating ini files.
     """
+    output_name: str
+    output_dir: str
+
     def __init__(self, custom_name: str | None = None,
-                 custom_args: Dict[str, Any] = {},
+                 custom_args: Dict[Any, Any] = {},
                  showname_args: Dict[str, Any] = {},
                  custom_output_name: str | None = None) -> None:
         """
@@ -48,7 +51,7 @@ class IniSetup:
         if not os.path.exists(config_name):
             config['SETTINGS'] = {
                 'bdmv_dir': "BDMV",
-                'reserve_core': False,
+                'reserve_core': 'False',
                 'show_name': self.get_show_name(caller_name, **showname_args)[0],
                 'output_dir': "Premux",
                 'output_name': custom_output_name or "$$_@@ (Premux)"
@@ -81,23 +84,23 @@ class IniSetup:
         """
         _parents = parents or file_name.count(key)
 
-        file_name = os.path.basename(file_name).split(key)
-        file_name[-1] = os.path.splitext(file_name[-1])[0]
+        file_name_split = os.path.basename(file_name).split(key)
+        file_name_split[-1] = os.path.splitext(file_name_split[-1])[0]
 
         if _parents > 1:
             try:  # Check if final split is the episode number
-                int(file_name[-1])
+                int(file_name_split[-1])
             except ValueError as e:
                 raise ValueError("get_show_name: 'Please make sure your file name is structured like so: "
                                  f"\"showname{key}ep\" current: {os.path.splitext(caller_name)[0]}. "
                                  "This function expects you to follow this pattern to properly parse "
                                  "all the information it needs!\n", e)
 
-            file_name[0] = ''.join(f'{sn}{key}' for sn in file_name[:-_parents])
+            file_name_split[0] = ''.join(f'{sn}{key}' for sn in file_name_split[:-_parents])
 
-        return file_name
+        return file_name_split
 
-    def parse_name(self, key_name: str = '$$', key_ep: str = '@@', key_version: str = '&&') -> Path:
+    def parse_name(self, key_name: str = '$$', key_ep: str = '@@', key_version: str = '&&') -> VPath:
         """
         Converts a string to a proper path based on what's in the config file and __file__ name.
 
@@ -105,7 +108,7 @@ class IniSetup:
         :param key_ep:          Key that indicates where in the filename the episode should be injected.
         :param key_version:     Key that indicates where in the filename the encode version should be injected.
 
-        :returns:               Path object with the output name and directory.
+        :returns:               VPath object with the output name and directory.
         """
         file_name = self.get_show_name()
 
@@ -115,7 +118,7 @@ class IniSetup:
             version: int = len(glob(f"{self.output_dir}/*{file_name[-1]}*.*", recursive=False)) + 1
             output_name = output_name.replace(key_version, f"v{version}")
 
-        return Path(self.output_dir + '/' + os.path.basename(output_name) + '.mkv')
+        return VPath(self.output_dir + '/' + os.path.basename(output_name) + '.mkv')
 
 
 def init_project() -> IniSetup:

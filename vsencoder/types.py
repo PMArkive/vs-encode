@@ -2,7 +2,10 @@
 Generic types.
 """
 from enum import IntEnum
-from typing import List, Literal
+import os
+from pathlib import Path
+from vardautomation import VPath
+from typing import List, Literal, Union
 
 __all__: List[str] = [
     'EncodersEnum'
@@ -10,9 +13,12 @@ __all__: List[str] = [
 
 
 # TODO: Replace with proper enums
-VIDEO_ENCODER = Literal['x264', 'x265', 'nvencclossless', 'ffv1']
+VIDEO_ENCODER = Literal['x264', 'x265']
+LOSSLESS_VIDEO_ENCODER = Literal['nvencclossless', 'ffv1']
 AUDIO_ENCODER = Literal['passthrough', 'qaac', 'opus', 'fdkaac', 'flac']
 
+
+FilePath = Union[str, os.PathLike, Path, VPath]
 
 class EncodersEnum(IntEnum):
     """Encoders supported by Vardautomation. Currently broken (oops)."""

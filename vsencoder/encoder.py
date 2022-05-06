@@ -2,24 +2,32 @@ import os
 import shutil
 from copy import copy
 from fractions import Fraction
-from typing import Any, Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Sequence, Tuple
 
 import vapoursynth as vs
-from vardautomation import (JAPANESE, X264, X265, Chapter, FileInfo, Lang,
-                            Patch, SelfRunner, VPath, logger)
+from lvsfunc import get_prop
+from vardautomation import (FFV1, JAPANESE, X264, X265, Chapter, FileInfo,
+                            Lang, LosslessEncoder, NVEncCLossless, Patch,
+                            SelfRunner, VideoLanEncoder, VPath, logger)
 from vardautomation.utils import Properties
+from vsutil import get_depth
 
-from .helpers import (finalize_clip, get_channel_layout_str, get_encoder_cores,
+from .exceptions import (FrameLengthMismatch, NoAudioEncoderError,
+                         NoChaptersError, NoLosslessVideoEncoderError,
+                         NotEnoughValuesError, NoVideoEncoderError)
+from .helpers import (chain, get_channel_layout_str, get_encoder_cores,
                       resolve_ap_trims, x264_get_matrix_str)
 from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
-from .types import AUDIO_ENCODER, VIDEO_ENCODER
+from .types import AUDIO_ENCODER, LOSSLESS_VIDEO_ENCODER, VIDEO_ENCODER
+from .video import (finalize_clip, get_lossless_video_encoder,
+                    get_video_encoder, validate_qp_clip)
 
 __all__: List[str] = [
-    'Encoder'
+    'EncodeRunner'
 ]
 
 
-class Encoder:
+class EncodeRunner:
     """
     Video encoding chain builder.
     There are multiple steps to video encoding and processing, and each is added as an individual step in this class.
@@ -53,59 +61,115 @@ class Encoder:
                             If None, assumes Japanese for all tracks.
     :param setup_args:      Kwargs for the ini file setup.
     """
-    import vardautomation as va
-
     # init vars
     file: FileInfo
     clip: vs.VideoNode
-    clean_up: bool
 
-    # Language for every track
-    v_lang: Lang
-    a_lang: Lang
-    c_lang: Lang
+    # Whether we're encoding/muxing...
+    video_setup: bool = False
+    lossless_setup: bool = False
+    audio_setup: bool = False
+    chapters_setup: bool = False
+    muxing_setup: bool = False
 
     # Generic Muxer vars
-    v_encoder: va.VideoEncoder
-    v_lossless_encoder: va.LosslessEncoder | None = None
     a_tracks: List[va.AudioTrack] = []
-    a_extracters: va.AudioExtracter | Sequence[va.AudioExtracter] | None = None
-    a_cutters: va.AudioCutter | Sequence[va.AudioCutter] | None = None
-    a_encoders: va.AudioEncoder | Sequence[va.AudioEncoder] | None = None
+    a_extracters: va.AudioExtracter | Sequence[va.AudioExtracter] | None = []
+    a_cutters: va.AudioCutter | Sequence[va.AudioCutter] | None = []
+    a_encoders: va.AudioEncoder | Sequence[va.AudioEncoder] | None = []
     c_tracks: List[va.ChaptersTrack] = []
     muxer: va.MatroskaFile
 
     # Video-related vars
     enc_lossless: bool = False
-    clean_up: bool = True
     qp_clip: vs.VideoNode | None = None
 
     # Audio-related vars
     external_audio: bool = True
     audio_files: List[str] = []
 
-    def __init__(self, file: FileInfo, clip: vs.VideoNode, /, lang: Lang | List[Lang] = JAPANESE,
-                 **setup_args: Any) -> None:
+    def __init__(self, file: FileInfo, clip: vs.VideoNode, /, lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
+
         self.file = file
         self.clip = clip
 
         # TODO: Support multiple languages for different tracks.
-        if isinstance(lang, self.va.Lang):
-            self.v_lang = lang
-            self.a_lang = lang
-            self.c_lang = lang
-        elif len(lang) < 3:
-            raise ValueError("Encoder: 'You must pass at least three (3) languages! "
-                                f"Not {len(lang)}!'")
+        if isinstance(lang, Lang):
+            self.v_lang, self.a_lang, self.c_lan = lang, lang, lang
         elif len(lang) >= 3:
-            self.v_lang = lang[0]
-            self.a_lang = lang[1]
-            self.c_lang = lang[2]
+            self.v_lang, self.a_lang, self.c_lan = lang[0], lang[1], lang[2]
+        else:
+            raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
-        init = IniSetup(**setup_args)
+        self.file.name_file_final = IniSetup().parse_name()
 
-        self.file.name_file_final = init.parse_name()
+    @chain
+    def video(self, encoder: VIDEO_ENCODER | VideoLanEncoder | bool = 'x265', settings: str | bool | None = None,
+              /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
+              *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
+              **enc_overrides: Any) -> None:
+        """
+        Basic video-related setup for the output video.
+
+        :param encoder:                 What encoder to use when encoding the video.
+                                        Valid options are: x264, x265, a custom VideoLanEncoder object,
+                                        or False to not encode a video at all.
+        :param settings:                Path to settings file. Defaults to ".settings/settings.txt".
+        :param zones:                   Zones for x264/x265. Expected in the following format:
+                                        {(100, 200): {'crf': 13}, (500, 600): {'crf': 12}}.
+                                        Zones will be sorted prior to getting passed to the encoder.
+        :param qp_clip:                 Optional qp clip for the qp file creation. Useful for DVD encodes.
+                                        Set to False to not inject a qp clip. Else if None, will use base clip.
+        :param prefetch:                Prefetch. Set a low value to limit the number of frames rendered at once.
+        :param enc_overrides:           Overrides for the encoder settings.
+        """
+        logger.success("Checking video related settings...")
+
+        if zones:
+            zones = dict(sorted(zones.items(), key=lambda item: item[1]))  # type:ignore[return-value, arg-type]
+
+        if settings is None:
+            # TODO: Automatically generate a settings file
+            logger.warning("video: 'No settings file given. Will automatically generate one for you. "
+                           "To disable this behaviour, pass `settings=False`.")
+
+        self.clip = finalize_clip(self.clip)
+
+        if isinstance(encoder, (str, VideoLanEncoder)):
+            self.v_encoder = get_video_encoder(encoder, settings, zones=zones, **enc_overrides)
+        else:
+            raise NoVideoEncoderError
+
+        if isinstance(qp_clip, vs.VideoNode):
+            self.qp_clip = validate_qp_clip(self.clip, qp_clip)
+        elif qp_clip is None:
+            self.qp_clip = validate_qp_clip(self.clip, self.file.clip_cut)
+
+        self.v_encoder.prefetch = prefetch or 0
+        self.v_encoder.resumable = True
+
+        logger.info(f"Encoding video using {encoder}.")
+        logger.info(f"Zones: {zones}")
+
+        if isinstance(qp_clip, vs.VideoNode):
+            logger.info("qp_clip set using the given qp clip.")
+        elif qp_clip is not False:
+            logger.info("qp_clip set using the original clip cut as qp clip.")
+
+        self.video_setup = True
+
+    @chain
+    def lossless(self, lossless_encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
+                 **enc_overrides: Any) -> None:
+        logger.success("Checking lossless intermediary related settings...")
+
+        self.l_encoder = get_lossless_video_encoder(lossless_encoder, **enc_overrides)
+
+        logger.info(f"Creating an intermediary lossless encode using {lossless_encoder}.")
+
+        self.lossless_setup = True
+
 
     def perform_cleanup(self, runner_object: SelfRunner | Patch) -> None:
         """
@@ -123,73 +187,36 @@ class Encoder:
 
         logger.info("Cleaning up leftover files done!")
 
-    def video(self, encoder: VIDEO_ENCODER = 'x265', settings: str | bool | None = None,
-              /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-              *, sanitize_output: bool = True, use_qp: bool = True, qp_clip: vs.VideoNode | None = None,
-              prefetch: int | None = None, resumable: bool = True, **enc_overrides: Any) -> "Encoder":
-        """
-        Basic video-related setup for the output video.
+    def _set_audio_tracks(self,
+                          cutter: self.va.AudioCutter | Sequence[self.va.AudioCutter] | None = None,
+                          encoder: self.va.AudioEncoder | Sequence[self.va.AudioEncoder] | None = None,
+                          extracter: self.va.AudioExtracter | Sequence[self.va.AudioExtracter] | None = None,
+                          track: int = 1, **cut_overrides: Any) -> None:
+        if cutter is not None:
+            self.a_cutters += [cutter(file_copy, track=-1, **cut_overrides)]
 
-        :param encoder:                 What encoder to use when encoding the video.
-                                        Valid options are: x264, x265, nvencclossless, ffv1.
-        :param settings:                Path to settings file. Defaults to ".settings/settings.txt".
-        :param sanitize_output:         Whether to sanitize the clip for outputting.
-                                        This means setting the bitdepth to 10 and clamping it to TV range.
-                                        If False, will assume you've handled this in your script yourself.
-        :param use_qp:                  Use a qp clip to help the encoder with finding scene changes.
-        :param qp_clip:                 Optional qp clip for the qpfile creation. Useful for DVD encodes.
-        :param prefetch:                Prefetch. Set a low value to limit the number of frames rendered at once.
-        :param resumable:               Enable resumable encoding. This makes it so encodes can continue
-                                        even in the event it has stopped midway.
-        :param zones:                   Zones for x264/x265. Expected in the following format:
-                                        {(100, 200): {'crf': 13}, (500, 600): {'crf': 12}}.
-                                        Zones will be sorted prior to getting passed to the encoder.
-        :param enc_overrides:           Overrides for the encoder settings.
-        """
-        logger.success("Checking video related settings...")
+        if encoder is not None:
+            self.a_encoders += [encoder(file_copy, track=-1, **cut_overrides)]
 
-        self.clip = finalize_clip(self.clip) if sanitize_output else self.clip
+        if extracter is not None:
+            self.a_extracters += [self.va.Eac3toAudioExtracter(file_copy, track_in=-1, track_out=-1)]
 
-        if zones:
-            zones = dict(sorted(zones.items(), key=lambda item: item[1]))
-
-        if settings is None:
-            # TODO: Automatically generate a settings file
-            logger.warning("video: 'No settings file given. Will automatically generate one for you. "
-                           "To disable this behaviour, pass `settings=False`.")
-
-        # TODO: Use proper intenums, match case?
-        enc = encoder.lower()
-
-        match enc:
-            case 'x264': self.v_encoder = X264Custom(settings, zones=zones, **enc_overrides)
-            case 'x265': self.v_encoder = X265Custom(settings, zones=zones, **enc_overrides)
-            case 'nvencclossless': self.v_lossless_encoder = self.va.NVEncCLossless(**enc_overrides)
-            case 'ffv1': self.v_lossless_encoder = self.va.FFV1(**enc_overrides)
-            case _:  raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid video encoder! "
-                                    "Please see the docstring for valid encoders!'")
-
-        logger.info(f"Encoding video using {enc}.")
-
-        if not self.v_lossless_encoder:
-            logger.info(f"Zones: {zones}")
-
-            # Set settings that only work for x264/x265
-            self.v_encoder.prefetch = prefetch or 0
-            self.v_encoder.resumable = resumable
-
-        if use_qp:
-            self.qp_clip = qp_clip or self.file.clip_cut
-
-        return self
+        if track is not None:
+            self.a_tracks += [
+                self.va.AudioTrack(
+                    self.file.a_src_cut.format(1),
+                    f"{original_codecs[0].upper()} {get_channel_layout_str(track_channels[0])}",
+                    self.a_lang, 0)
+            ]
 
     # TODO: Add `all_tracks` support to internal vardoto extracters/encoders/trimmers.
+    @chain
     def audio(self, encoder: AUDIO_ENCODER = 'qaac',
-              /, xml_file: str | None = None,  all_tracks: bool = False, use_ap: bool = True,
+              /, xml_file: str | None = None, all_tracks: bool = False, use_ap: bool = True,
               *, fps: Fraction | float | None = None,
               custom_trims: List[int | None] | List[List[int | None]] | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
-              cut_overrides: Dict[str, Any] = {}, enc_overrides: Dict[str, Any] = {}) -> "Encoder":
+              cut_overrides: Dict[str, Any] = {}, enc_overrides: Dict[str, Any] = {}) -> None:
         """
         Basic audio-related setup for the output audio.
 
@@ -307,18 +334,18 @@ class Encoder:
                 flac=not is_aac, aac=is_aac, silent=False, **enc_overrides
             )
 
-            for i, (track, channels) in enumerate(zip(self.audio_files, track_channels), 2):
+            for i, (track, channels) in enumerate(zip(self.audio_files, track_channels), 1):
                 # TODO: Find a better way to optionally pass an xml file
                 if xml_file is not None:
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            VPath(track), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
+                            VPath(track).format(i), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
                             self.a_lang, i, '--tags', f'0:{str(xml_file)}')
                     ]
                 else:
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            VPath(track), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
+                            VPath(track).format(i), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
                             self.a_lang, i)
                     ]
 
@@ -333,7 +360,7 @@ class Encoder:
                     self.a_extracters = self.va.Eac3toAudioExtracter(file_copy, track_in=-1, track_out=-1)
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            self.file.a_src_cut,
+                            self.file.a_src_cut.format(1),
                             f"{original_codecs[0].upper()} {get_channel_layout_str(track_channels[0])}",
                             self.a_lang, 0)
                     ]
@@ -343,7 +370,7 @@ class Encoder:
                     self.a_encoders = [self.va.QAACEncoder(file_copy, track=1, xml_tag=self.xml_tags, **enc_overrides)]
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            self.file.a_enc_cut.set_track(1),
+                            self.file.a_enc_cut.format(1).set_track(1),
                             f"AAC {get_channel_layout_str(track_channels[0])}",
                             self.a_lang, 0, '--tags', f'0:{str(xml_file)}')
                     ]
@@ -353,7 +380,7 @@ class Encoder:
                     self.a_encoders = [self.va.FlacEncoder(file_copy, track=1, **enc_overrides)]
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            self.file.a_enc_cut.set_track(1),
+                            self.file.a_enc_cut.format(1).set_track(1),
                             f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
                             self.a_lang, 0)
                     ]
@@ -363,7 +390,7 @@ class Encoder:
                     self.a_encoders = [self.va.OpusEncoder(file_copy, track=1, **enc_overrides)]
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            self.file.a_enc_cut.set_track(1),
+                            self.file.a_enc_cut.format(1).set_track(1),
                             f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
                             self.a_lang, 0)
                     ]
@@ -373,19 +400,20 @@ class Encoder:
                     self.a_encoders = [self.va.FDKAACEncoder(file_copy, track=1, **enc_overrides)]
                     self.a_tracks += [
                         self.va.AudioTrack(
-                            self.file.a_enc_cut.set_track(1),
+                            self.file.a_enc_cut.format(1).set_track(1),
                             f"AAC {get_channel_layout_str(track_channels[0])}",
                             self.a_lang, 0)
                     ]
-                case _: raise ValueError(f"Encoder.video: '\"{encoder}\" is not a valid audio encoder! "
-                                        "Please see the docstring for valid encoders!'")
+                case _: raise ValueError(f"Encoder.audio: '\"{encoder}\" is not a valid audio encoder! "
+                                         "Please see the docstring for valid encoders!'")
 
         del file_copy
 
-        return self
 
+
+    @chain
     def chapters(self, chapter_list: List[Chapter] | None = None, chapter_offset: int | None = None,
-                 chapter_names: Sequence[str] | None = None) -> "Encoder":
+                 chapter_names: Sequence[str] | None = None) -> None:
         """
         Basic chapter-related setup for the output chapters.
 
@@ -405,9 +433,10 @@ class Encoder:
 
         self.c_tracks += [self.va.ChaptersTrack(chapxml.chapter_file, self.c_lang)]
 
-        return self
 
-    def mux(self, encoder_credit: str = '') -> "Encoder":
+
+    @chain
+    def mux(self, encoder_credit: str = '') -> "EncodeRunner":
         """
         Basic muxing-related setup for the final muxer.
         This will always output an mkv file.
@@ -434,7 +463,7 @@ class Encoder:
 
         self.muxer = self.va.MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
 
-        return self
+
 
     def run(self, clean_up: bool = True, /, order: str = 'video') -> None:
         """
@@ -511,55 +540,3 @@ class Encoder:
 
         if clean_up:
             self.perform_cleanup(runner)
-
-
-class X264Custom(X264):
-    """
-    Custom x265 runner that adds new useful keys.
-    You set them by putting {key:type} in the settings file.
-    `s` is used for strings, `d` is used for integers.
-
-    For example:
-        --threads {thread:d}
-
-    The type is also given in the individdual explanation.
-
-    :key thread:        Automatically determine amount of threads for x265 to run. (d)
-    :key matrix:        Automatically set the clip's color matrix from the clip's frameprops. (d)
-    :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (d)
-    :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (d)
-    """
-    props_obj = Properties()
-
-    def set_variable(self) -> Dict[str, Any]:
-        return super().set_variable() | dict(
-            thread=get_encoder_cores(),
-            matrix=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int)),
-            primaries=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int)),
-            transfer=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int)))
-
-
-class X265Custom(X265):
-    """
-    Custom x265 runner that adds new useful keys.
-    You set them by putting {key:type} in the settings file.
-    `s` is used for strings, `d` is used for integers.
-
-    For example:
-        --numa-pools {thread:d}
-
-    The type is also given in the individdual explanation.
-
-    :key thread:        Automatically determine amount of threads for x265 to run. (d)
-    :key matrix:        Automatically set the clip's color matrix from the clip's frameprops. (d)
-    :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (d)
-    :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (d)
-    """
-    props_obj = Properties()
-
-    def set_variable(self) -> Dict[str, Any]:
-        return super().set_variable() | dict(
-            thread=get_encoder_cores(),
-            matrix=self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int),
-            primaries=self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int),
-            transfer=self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int))
