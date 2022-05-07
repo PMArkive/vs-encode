@@ -48,7 +48,7 @@ def set_eafile_properties(file_obj: FileInfo,
     return file_obj
 
 
-def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> List[List[int] | List[str]]:
+def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> Tuple[List[int] | List[str]]:
     track_channels: List[int] = []
     original_codecs: List[str] = []
 

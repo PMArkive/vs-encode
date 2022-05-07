@@ -277,9 +277,7 @@ class EncodeRunner:
                     track_count += 1
             track_count = track_count - 1  # To compensate for the extra track counted
 
-        audio_track_info: List[List[int] | List[str]] = get_track_info(self.file)
-        track_channels: List[int] = audio_track_info[0]  # type:ignore[assignment]
-        original_codecs: List[str] = audio_track_info[1]  # type:ignore[assignment]
+        track_channels, original_codecs = get_track_info(self.file)
 
         if enc == 'passthrough' and any(c in original_codecs for c in reenc_codecs):
             logger.warning("Unsupported audio codecs found in source file! "
