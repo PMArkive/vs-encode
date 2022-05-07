@@ -26,7 +26,7 @@ from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
                          MissingDependenciesError, NoAudioEncoderError,
                          NoChaptersError, NoLosslessVideoEncoderError,
                          NotEnoughValuesError, NoVideoEncoderError)
-from .helpers import chain, get_encoder_cores, x264_get_matrix_str
+from .helpers import get_encoder_cores, x264_get_matrix_str
 from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
@@ -260,8 +260,7 @@ class EncodeRunner:
         ea_file = external_audio_file
         trims = custom_trims or self.file.trims_or_dfs
 
-        self.file = set_missing_tracks(self.file)
-        self.file.a_src_cut = VPath(self.file.name)
+        self.file = set_missing_tracks(self.file, use_ap=use_ap)
         file_copy = copy.copy(self.file)
 
         if isinstance(fps, int) or isinstance(fps, float):
@@ -412,6 +411,8 @@ class EncodeRunner:
                                 This does not affect anything if AudioProcessor is used.
         """
         logger.success("Checking runner related settings...")
+
+        logger.info(f"Current file info:\n{self.file}\n")
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,

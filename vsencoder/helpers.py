@@ -4,7 +4,7 @@ Helper functions used by `__main__`.
 import math
 import multiprocessing as mp
 import os
-from functools import partial, wraps
+from functools import partial
 from pathlib import Path
 from typing import Any, List
 
@@ -15,21 +15,10 @@ import vardefunc
 from .types import FilePath
 
 __all__: List[str] = [
-    'finalize_clip',
     'resolve_ap_trims',
     'get_channel_layout_str',
     'get_encoder_cores',
-    'chain'
 ]
-
-
-def chain(func: Any) -> Any:
-    @wraps(func)
-    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        suspended = partial(func, self, *args, **kwargs)
-        self.call_chain.append(suspended)
-        return self
-    return wrapper
 
 
 def get_encoder_cores() -> int:

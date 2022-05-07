@@ -113,11 +113,11 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
                            xml_file: str | None = None,
                            lang: Lang = JAPANESE) -> List[AudioTrack]:
     a_tracks: List[AudioTrack] = []
-    xml_arg: Tuple[str, str] = ("", "")
 
+    xml_arg: Tuple(str, str) = ()
     # TODO: Multi-track support
     if isinstance(xml_file, str):
-        xml_arg = ('--tags', f'0:{str(xml_file)}')
+        xml_arg: Tuple(str, str) = ('--tags', f'0:{str(xml_file)}')
 
     for i, (track, channels) in enumerate(zip(audio_files, track_channels), 1):
         a_tracks += [AudioTrack(VPath(track).format(i), f'{codec.upper()} {get_channel_layout_str(channels)}',
@@ -239,21 +239,25 @@ def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None =
     return audio_tracks
 
 
-def set_missing_tracks(file_obj: FileInfo, preset: Preset = PresetBackup) -> FileInfo:
+def set_missing_tracks(file_obj: FileInfo, preset: Preset = PresetBackup,
+                       use_ap: bool = True) -> FileInfo:
     try:
         assert isinstance(file_obj.a_src, VPath)
     except AssertionError:
         file_obj.a_src = preset.a_src
 
-    try:
-        assert isinstance(file_obj.a_src, VPath)
-    except AssertionError:
-        file_obj.a_src = preset.a_src
+    if use_ap:
+        file_obj.a_src_cut = file_obj.name
+    else:
+        try:
+            assert isinstance(file_obj.a_src_cut, VPath)
+        except AssertionError:
+            file_obj.a_src_cut = preset.a_src_cut
 
     try:
-        assert isinstance(file_obj.a_src, VPath)
+        assert isinstance(file_obj.a_enc_cut, VPath)
     except AssertionError:
-        file_obj.a_src = preset.a_src
+        file_obj.a_enc_cut = preset.a_enc_cut
 
     return file_obj
 
