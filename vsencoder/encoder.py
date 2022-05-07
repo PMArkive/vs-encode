@@ -2,34 +2,46 @@ import copy
 import os
 import shutil
 from fractions import Fraction
-from typing import Any, Dict, Iterable, List, Literal, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Sequence, Tuple, Union
 
 import vapoursynth as vs
 from lvsfunc import check_variable, get_prop
-from vardautomation import (FFV1, JAPANESE, X264, X265, AudioCutter,
+from vardautomation import (FFV1, JAPANESE, X264, X265, AnyPath, AudioCutter,
                             AudioEncoder, AudioExtracter, AudioTrack, Chapter,
-                            ChaptersTrack, Eac3toAudioExtracter, FileInfo,
-                            Lang, LosslessEncoder, MatroskaFile,
-                            NVEncCLossless, Patch, RunnerConfig, SelfRunner,
-                            VideoLanEncoder, VideoTrack, VPath, logger)
+                            ChaptersTrack, Eac3toAudioExtracter, FDKAACEncoder,
+                            FileInfo, FlacEncoder, Lang, LosslessEncoder,
+                            MatroskaFile, MatroskaXMLChapters, MediaTrack,
+                            NVEncCLossless, OpusEncoder)
+from vardautomation import PassthroughCutter as PassCutter
+from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
+                            SelfRunner, Track, VideoLanEncoder, VideoTrack,
+                            VPath, logger)
 from vardautomation.utils import Properties
 from vsutil import get_depth
 
+from .audio import (iterate_ap_audio_files, iterate_cutter, iterate_encoder,
+                    iterate_extractors, iterate_tracks, run_ap,
+                    set_missing_tracks, get_track_info)
 from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
-                         NoAudioEncoderError, NoChaptersError,
-                         NoLosslessVideoEncoderError, NotEnoughValuesError,
-                         NoVideoEncoderError)
-from .helpers import (chain, get_channel_layout_str, get_encoder_cores,
-                      resolve_ap_trims, x264_get_matrix_str)
-from .audio import *
+                         MissingDependenciesError, NoAudioEncoderError,
+                         NoChaptersError, NoLosslessVideoEncoderError,
+                         NotEnoughValuesError, NoVideoEncoderError)
+from .helpers import chain, get_encoder_cores, x264_get_matrix_str
 from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
-from .types import (AUDIO_ENCODER, LOSSLESS_VIDEO_ENCODER, VIDEO_ENCODER,
-                    AudioTrim)
+from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
+                    BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
+                    VIDEO_CODEC, AudioTrim, PresetBackup)
 from .video import (finalize_clip, get_lossless_video_encoder,
                     get_video_encoder, validate_qp_clip)
 
 __all__: List[str] = [
     'EncodeRunner'
+]
+
+
+# These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
+reenc_codecs: List[str] = [
+    'AC-3', 'EAC-3'
 ]
 
 
@@ -58,6 +70,13 @@ class EncodeRunner:
     :param clip:            VideoNode to use for the output.
                             This should be the filtered clip, or in other words,
                             the clip you want to encode as usual.
+    :param lang:            Languages for every track.
+                            If given a list, you can set individual languages per track.
+                            The first will always be the language of the video track.
+                            It's best to set this to your source's region.
+                            The second one is used for all Audio tracks.
+                            The third one will be used for chapters.
+                            If None, assumes Japanese for all tracks.
     """
     # init vars
     file: FileInfo
@@ -71,22 +90,24 @@ class EncodeRunner:
     muxing_setup: bool = False
 
     # Generic Muxer vars
+    v_encoder: VideoLanEncoder
+    l_encoder: LosslessEncoder | None = None
+    a_extracters: BUILTIN_AUDIO_EXTRACTORS | List[BUILTIN_AUDIO_EXTRACTORS] = []
+    a_cutters: BUILTIN_AUDIO_CUTTERS | List[BUILTIN_AUDIO_CUTTERS] = []
+    a_encoders: BUILTIN_AUDIO_ENCODERS | List[BUILTIN_AUDIO_ENCODERS] = []
     a_tracks: List[AudioTrack] = []
-    a_extracters: AudioExtracter | Sequence[AudioExtracter] | None = []
-    a_cutters: AudioCutter | Sequence[AudioCutter] | None = []
-    a_encoders: AudioEncoder | Sequence[AudioEncoder] | None = []
     c_tracks: List[ChaptersTrack] = []
     muxer: MatroskaFile
 
     # Video-related vars
-    enc_lossless: bool = False
     qp_clip: vs.VideoNode | None = None
 
     # Audio-related vars
-    external_audio: bool = True
     audio_files: List[str] = []
 
-    def __init__(self, file: FileInfo, clip: vs.VideoNode) -> None:
+
+    def __init__(self, file: FileInfo, clip: vs.VideoNode,
+                 lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
 
         check_variable(clip, "EncodeRunner")
@@ -94,13 +115,21 @@ class EncodeRunner:
         self.file = file
         self.clip = clip
 
+        # TODO: Support multiple languages for different tracks.
+        if isinstance(lang, Lang):
+            self.v_lang, self.a_lang, self.c_lang = lang, lang, lang
+        elif len(lang) >= 3:
+            self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1], lang[2]
+        else:
+            raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
+
         self.file.name_file_final = IniSetup().parse_name()
 
-    @chain
-    def video(self, encoder: VIDEO_ENCODER | VideoLanEncoder | bool = 'x265', settings: str | bool | None = None,
+
+    def video(self, encoder: VIDEO_CODEC | VideoLanEncoder | bool = 'x265', settings: str | bool | None = None,
               /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
               *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
-              **enc_overrides: Any) -> None:
+              **enc_overrides: Any) -> "EncodeRunner":
         """
         Basic video-related setup for the output video.
 
@@ -157,10 +186,11 @@ class EncodeRunner:
             logger.info("qp_clip set using the original clip cut as qp clip.")
 
         self.video_setup = True
+        return self
 
-    @chain
+
     def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
-                 **enc_overrides: Any) -> None:
+                 **enc_overrides: Any) -> "EncodeRunner":
         if self.lossless_setup:
             raise AlreadyInChainError('lossless')
 
@@ -174,23 +204,22 @@ class EncodeRunner:
         logger.info(f"Creating an intermediary lossless encode using {encoder}.")
 
         self.lossless_setup = True
+        return self
 
 
-    # TODO: Add `all_tracks` support to internal vardoto extracters/encoders/trimmers.
-    @chain
-    def audio(self, encoder: AUDIO_ENCODER = 'qaac',
-              /, xml_file: str | None = None, all_tracks: bool = False, use_ap: bool = True,
-              *, fps: Fraction | float | None = None,
-              custom_trims: AudioTrim | None = None,
+    def audio(self, encoder: AUDIO_CODEC = 'aac',
+              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = True,
+              *, fps: Fraction | float | None = None, custom_trims: AudioTrim | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
-              cut_overrides: Dict[str, Any] = {}, enc_overrides: Dict[str, Any] = {}) -> None:
+              extract_overrides: Dict[str, Any] = {}, cutter_overrides: Dict[str, Any] = {},
+              encoder_overrides: Dict[str, Any] = {}, track_overrides: Dict[str, Any] = {}) -> "EncodeRunner":
         """
         Basic audio-related setup for the output audio.
 
         Audio files are always trimmed using either AudioProcessor or Sox.
 
         :param encoder:                 What encoder/setup to use when encoding the audio.
-                                        Valid options are: passthrough, qaac, opus, fdkaac, flac.
+                                        Valid options are: passthrough, aac, opus, fdkaac, flac.
         :param all_tracks:              Whether to mux in all the audio tracks or just the first track.
                                         This currently only works with AudioProcessor.
                                         If False, muxes in the first track.
@@ -204,8 +233,10 @@ class EncodeRunner:
                                         If int/float, automatically sets it to `fps/1`.
         :param custom_trims             Custom trims for audio trimming.
                                         If None, uses file.trims_or_dfs.
-        :param cut_overrides:           Overrides for SoxCutter's cutting.
-        :param enc_overrides:           Overrides for the encoder settings.
+        :param extract_overrides:       Overrides for Eac3toAudioExtracter's cutting.
+        :param cutter_overrides:        Overrides for SoxCutter's cutting.
+        :param encoder_overrides:       Overrides for the encoder settings.
+        :param track_overrides:         Overrides for the audio track settings.
         """
         if self.audio_setup:
             raise AlreadyInChainError('audio')
@@ -218,19 +249,18 @@ class EncodeRunner:
             except ModuleNotFoundError:
                 raise ModuleNotFoundError("audio: missing dependency 'bvsfunc'. "
                                           "Please install it at https://github.com/begna112/bvsfunc.")
-        else:
-            self.a_extracters = [Eac3toAudioExtracter(self.file)]
 
-        try:
-            from pymediainfo import MediaInfo
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError("audio: missing dependency 'pymediainfo'")
+        enc = encoder.lower()
 
-        ea_clip = external_audio_clip
+        if enc == 'aac':
+            check_aac_encoders_installed()
+
+        track_count: int = 1
+
         ea_file = external_audio_file
-
         trims = custom_trims or self.file.trims_or_dfs
 
+        self.file = set_missing_tracks(self.file)
         self.file.a_src_cut = VPath(self.file.name)
         file_copy = copy.copy(self.file)
 
@@ -238,165 +268,76 @@ class EncodeRunner:
             fps = Fraction(f'{fps}/1')
 
         if ea_file:
-            file_copy = set_eafile_properties(self.file, file_copy, ea_file, trims, use_ap=use_ap)
+            file_copy = set_eafile_properties(file_copy, ea_file,
+                                              external_audio_clip=external_audio_clip,
+                                              trims=trims, use_ap=use_ap)
 
-        # OLD CODE
-        # Just making it shorter for my own convenience
-        ea_clip = external_audio_clip
-        ea_file = external_audio_file
-
-        if not custom_trims:
-            trims = self.file.trims_or_dfs if not ea_clip else ea_clip.trims_or_dfs
-        else:
-            trims = custom_trims
-
-        self.file.a_src_cut = VPath(self.file.name)
-
-        file_copy = copy(self.file)
-
-        if ea_file is not None:
-            file_copy.path = VPath(ea_file)
-            file_copy.path_without_ext = VPath(os.path.splitext(ea_file)[0])
-            file_copy.work_filename = file_copy.path.stem
-            file_copy.a_src_cut = VPath(self.file.name)
-
-        if not use_ap:
-            file_copy.trims_or_dfs = trims
-
-        track_channels: List[int] = []
-        original_codecs: List[str] = []
-
-        if ea_file is not None:
-            ea_media_info = MediaInfo.parse(ea_file)
-            for track in ea_media_info.tracks:
+        if all_tracks and ea_file is None:
+            for track in file_copy.media_info.tracks:
                 if track.track_type == 'Audio':
-                    track_channels += [track.channel_s]
-                    original_codecs += [track.format]
-                    if not all_tracks:
-                        break
-        else:
-            for track in self.file.media_info.tracks:
-                if track.track_type == 'Audio':
-                    track_channels += [track.channel_s]
-                    original_codecs += [track.format]
-                    if not all_tracks:
-                        break
+                    track_count += 1
+            track_count = track_count - 1  # To compensate for the extra track counted
 
-        enc = encoder.lower()
+        audio_track_info: List[List[int] | List[str]] = get_track_info(self.file)
+        track_channels: List[int] = audio_track_info[0]  # type:ignore[assignment]
+        original_codecs: List[str] = audio_track_info[1]  # type:ignore[assignment]
 
-        # These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
-        reenc_codecs: List[str] = [
-            'AC-3', 'EAC-3'
-        ]
-
-        if enc == 'passthrough' and any(codec in original_codecs for codec in reenc_codecs):
+        if enc == 'passthrough' and any(c in original_codecs for c in reenc_codecs):
             logger.warning("Unsupported audio codecs found in source file! "
                            "Will be automatically set to encode using FLAC instead.\n"
                            f"The following codecs are unsupported: {reenc_codecs}")
             enc = 'flac'
 
-        if enc in ('qaac', 'flac') and use_ap:
-            is_aac = enc == 'qaac'
-            audio_codec_str: str = 'AAC' if is_aac else 'FLAC'
+        if enc in ('aac', 'flac') and use_ap:
+            is_aac = enc == 'aac'
 
             if is_aac:
-                logger.info("Audio codec: aac (QAAC through AudioProcessor)")
+                logger.info("Audio codec: AAC (QAAC through AudioProcessor)")
             else:
-                logger.info("Audio codec: flac (FLAC through AudioProcessor)")
+                logger.info("Audio codec: FLAC (FLAC through AudioProcessor)")
 
-            if any([ea_clip, ea_file]):
-                ea_file = ea_file or ea_clip.path.to_str()
-
-            self.audio_files = ap.video_source(
-                in_file=ea_file or self.file.path.to_str(),
-                out_file=self.file.a_src_cut,
-                trim_list=resolve_ap_trims(trims, self.clip if not ea_clip else ea_clip),
-                trims_framerate=fps or self.file.clip.fps if not ea_clip else ea_clip.clip.fps,
-                frames_total=self.file.clip.num_frames if not ea_clip else ea_clip.clip.num_frames,
-                flac=not is_aac, aac=is_aac, silent=False, **enc_overrides
-            )
-
-            for i, (track, channels) in enumerate(zip(self.audio_files, track_channels), 1):
-                # TODO: Find a better way to optionally pass an xml file
-                if xml_file is not None:
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            VPath(track).format(i), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
-                            self.a_lang, i, '--tags', f'0:{str(xml_file)}')
-                    ]
-                else:
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            VPath(track).format(i), f'{audio_codec_str.upper()} {get_channel_layout_str(channels)}',
-                            self.a_lang, i)
-                    ]
-
-                if not all_tracks:
-                    break
+            self.audio_files = run_ap(file_copy, is_aac, trims, fps, **encoder_overrides)
+            self.a_tracks = iterate_ap_audio_files(self.audio_files, track_channels,
+                                                   all_tracks=all_tracks, codec='AAC' if is_aac else 'FLAC',
+                                                   xml_file=xml_file, lang=self.a_lang)
         else:
             match enc:
                 case 'passthrough':
-                    logger.info(f"Audio codec: {original_codecs[0]}")
-                    self.a_cutters = [self.PassthroughCutter(file_copy, track=-1, **cut_overrides)]
-                    self.a_encoders = None
-                    self.a_extracters = self.Eac3toAudioExtracter(file_copy, track_in=-1, track_out=-1)
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            self.file.a_src_cut.format(1),
-                            f"{original_codecs[0].upper()} {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0)
-                    ]
-                case 'qaac':
-                    logger.info("Audio codec: aac (QAAC)")
-                    self.a_cutters = [self.SoxCutter(file_copy, track=1, **cut_overrides)]
-                    self.a_encoders = [self.QAACEncoder(file_copy, track=1, xml_tag=self.xml_tags, **enc_overrides)]
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            self.file.a_enc_cut.format(1).set_track(1),
-                            f"AAC {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0, '--tags', f'0:{str(xml_file)}')
-                    ]
+                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
+                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
+                case 'aac':
+                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                    self.a_cutters = iterate_cutter(file_copy, PassCutter, tracks=track_count, **cutter_overrides)
+                    self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **encoder_overrides)
+                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
                 case 'flac':
-                    logger.info("Audio codec: flac (FLAC)")
-                    self.a_cutters = [self.SoxCutter(file_copy, track=1, **cut_overrides)]
-                    self.a_encoders = [self.FlacEncoder(file_copy, track=1, **enc_overrides)]
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            self.file.a_enc_cut.format(1).set_track(1),
-                            f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0)
-                    ]
+                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
+                    self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **encoder_overrides)
+                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
                 case 'opus':
-                    logger.info("Audio codec: opus (libopus)")
-                    self.a_cutters = [self.SoxCutter(file_copy, track=1, **cut_overrides)]
-                    self.a_encoders = [self.OpusEncoder(file_copy, track=1, **enc_overrides)]
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            self.file.a_enc_cut.format(1).set_track(1),
-                            f"{enc.upper()} {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0)
-                    ]
+                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
+                    self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **encoder_overrides)
+                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
                 case 'fdkaac':
-                    logger.info("Audio codec: aac (FDKAAC)")
-                    self.a_cutters = [self.SoxCutter(file_copy, track=1, **cut_overrides)]
-                    self.a_encoders = [self.FDKAACEncoder(file_copy, track=1, **enc_overrides)]
-                    self.a_tracks += [
-                        self.AudioTrack(
-                            self.file.a_enc_cut.format(1).set_track(1),
-                            f"AAC {get_channel_layout_str(track_channels[0])}",
-                            self.a_lang, 0)
-                    ]
-                case _: raise ValueError(f"Encoder.audio: '\"{encoder}\" is not a valid audio encoder! "
+                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
+                    self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **encoder_overrides)
+                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
+                case _: raise ValueError(f"'\"{encoder}\" is not a valid audio encoder! "
                                          "Please see the docstring for valid encoders!'")
 
         del file_copy
 
         self.audio_setup = True
+        return self
 
 
-    @chain
-    def chapters(self, chapter_list: List[Chapter] | None = None, chapter_offset: int | None = None,
-                 chapter_names: Sequence[str] | None = None) -> None:
+    def chapters(self, chapter_list: List[Chapter],
+                 chapter_offset: int | None = None,
+                 chapter_names: Sequence[str] | None = None) -> "EncodeRunner":
         """
         Basic chapter-related setup for the output chapters.
 
@@ -414,16 +355,20 @@ class EncodeRunner:
 
         chapxml = MatroskaXMLChapters(self.file.chapter)
         chapxml.create(chapter_list, self.file.clip.fps)
-        chapxml.shift_times(chapter_offset, self.file.clip.fps)  # type: ignore
-        chapxml.set_names(chapter_names)
+
+        if chapter_offset:
+            chapxml.shift_times(chapter_offset, self.file.clip.fps)
+
+        if chapter_names:
+            chapxml.set_names(chapter_names)
 
         self.c_tracks += [ChaptersTrack(chapxml.chapter_file, self.c_lang)]
 
         self.chapters_setup = True
+        return self
 
 
-    @chain
-    def mux(self, lang: Lang | List[Lang] = JAPANESE, encoder_credit: str = '') -> None:
+    def mux(self, encoder_credit: str = '') -> "EncodeRunner":
         """
         Basic muxing-related setup for the final muxer.
         This will always output an mkv file.
@@ -431,13 +376,6 @@ class EncodeRunner:
         :param encoder_credit:      Name of the person encoding the video.
                                     For example: `encoder_name=LightArrowsEXE@Kaleido`.
                                     This will be included in the video track metadata.
-        :param lang:                Languages for every track.
-                                    If given a list, you can set individual languages per track.
-                                    The first will always be the language of the video track.
-                                    It's best to set this to your source's region.
-                                    The second one is used for all Audio tracks.
-                                    The third one will be used for chapters.
-                                    If None, assumes Japanese for all tracks.
         """
         if self.muxing_setup:
             raise AlreadyInChainError('mux')
@@ -447,29 +385,21 @@ class EncodeRunner:
         if encoder_credit:
             encoder_credit = f"Original encode by {encoder_credit}"
 
-        # TODO: Support multiple languages for different tracks.
-        if isinstance(lang, Lang):
-            self.v_lang, self.a_lang, self.c_lan = lang, lang, lang
-        elif len(lang) >= 3:
-            self.v_lang, self.a_lang, self.c_lan = lang[0], lang[1], lang[2]
-        else:
-            raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
-
         # Adding all the tracks
-        # TODO: Union[Union[PathLike[str], str], Track, Iterable[Union[Union[PathLike[str], str], Track]], None]
-        all_tracks: List[self.AnyPath | self.Track | Iterable[self.AnyPath | self.Track] | None] = [
+        all_tracks: List[MediaTrack] = [
             VideoTrack(self.file.name_clip_output.to_str(), encoder_credit, self.v_lang)
         ]
 
         for track in self.a_tracks:
             all_tracks += [track]
 
-        for track in self.c_tracks:
+        for track in self.c_tracks:  # type:ignore[assignment]
             all_tracks += [track]
 
         self.muxer = MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
 
         self.muxing_setup = True
+        return self
 
 
     def run(self, clean_up: bool = True, /, order: str = 'video') -> None:
@@ -490,7 +420,8 @@ class EncodeRunner:
             a_cutters=self.a_cutters,
             a_encoders=self.a_encoders,
             mkv=self.muxer,
-            order=RunnerConfig.Order.VIDEO if order.lower() == 'video' else RunnerConfig.Order.AUDIO
+            order=RunnerConfig.Order.VIDEO if order.lower() == 'video' else RunnerConfig.Order.AUDIO,
+            clear_outputs=clean_up
         )
 
         runner = SelfRunner(self.clip, self.file, config)
@@ -508,7 +439,8 @@ class EncodeRunner:
                 logger.error("\nError during muxing! No file was written. Exiting...")
 
         if clean_up:
-            self.perform_cleanup(runner)
+            self._perform_cleanup(runner)
+
 
     def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
               /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None) -> None:
@@ -537,33 +469,38 @@ class EncodeRunner:
             encoder=self.v_encoder,
             clip=self.clip,
             file=self.file,
-            ranges=ranges,  # type:ignore[arg-type]
+            ranges=ranges,
             output_filename=output_filename
         )
 
         runner.run()
 
         if clean_up:
-            self.perform_cleanup(runner)
+            self._perform_cleanup(runner)
 
-    def perform_cleanup(self, runner_object: SelfRunner | Patch) -> None:
+
+    def _perform_cleanup(self, runner_object: SelfRunner | Patch) -> None:
         """
         Helper function that performs clean-up after running the encode.
         """
-        match runner_object:
-            case SelfRunner:
-                runner_object.work_files.remove(self.file.name_clip_output)
-                if self.chapters_setup:
-                    runner_object.work_files.remove(self.file.chapter)
-                runner_object.work_files.clear()
-            case Patch:
-                runner_object.do_cleanup()
-            case _: raise ValueError("Invalid runner object passed!")
+        try:
+            match runner_object:
+                case type(SelfRunner):
+                    runner_object.work_files.remove(self.file.name_clip_output)
+                    if self.chapters_setup:
+                        runner_object.work_files.remove(self.file.chapter)
+                    runner_object.work_files.clear()
+                case type(Patch):
+                    runner_object.do_cleanup()
+                case _: raise ValueError("Invalid runner object passed!")
+        except Exception as e:
+            logger.warning(f"Ran into an issue while cleaning!\n{e}\nContinuing...")
 
-        for track in self.audio_files:
-            try:
-                os.remove(track)
-            except FileNotFoundError:
-                logger.warning(f"File \"{track}\" not found! Can't clean it up, so skipping.")
+        if self.audio_files:
+            for track in self.audio_files:
+                try:
+                    os.remove(track)
+                except FileNotFoundError:
+                    logger.warning(f"File \"{track}\" not found! Can't clean it up, so skipping.")
 
         logger.info("Cleaning up leftover files done!")

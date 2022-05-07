@@ -7,11 +7,10 @@ from vardautomation import (FFV1, LosslessEncoder, NVEncCLossless,
                             VideoEncoder, VideoLanEncoder, logger)
 from vsutil import get_depth
 
-from .codecs import CustomCodecs
-from .encoder import EncodeRunner
+from .codecs import X264Custom, X265Custom
 from .exceptions import FrameLengthMismatch
 from .helpers import get_encoder_cores, verify_file_exists
-from .types import LOSSLESS_VIDEO_ENCODER, VIDEO_ENCODER
+from .types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 
 
 def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> vs.VideoNode:
@@ -29,7 +28,7 @@ def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> 
     return finalise_clip(clip, bits, tv_range)
 
 
-def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_ENCODER,
+def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_CODEC,
                       settings: str | bool | None = None,
                       **encoder_settings: Any) -> VideoLanEncoder:
     if not settings:
@@ -45,8 +44,8 @@ def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_ENCODER,
     else:
         v_encoder = v_encoder.lower()
         match v_encoder:
-            case 'x264': return CustomCodecs().X264Custom(settings, **encoder_settings)
-            case 'x265': return CustomCodecs().X265Custom(settings, **encoder_settings)
+            case 'x264' | 'h264': return X264Custom(settings, **encoder_settings)
+            case 'x265' | 'h265': return X265Custom(settings, **encoder_settings)
             case _: raise ValueError("Invalid video encoder!")
 
 

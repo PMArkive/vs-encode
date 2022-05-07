@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Tuple
 import vapoursynth as vs
 from vardautomation import FileInfo
 
-from .encoder import Encoder
+from .encoder import EncodeRunner
 
 __all__: List[str] = [
     'encoder',
@@ -58,7 +58,7 @@ def encoder(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
                             Although if you're using this, you should really just
                             be calling the methods directly yourself.
     """
-    chain = Encoder(file, clip).video(encoder=video_enc, zones=zones, **video_args) \
+    chain = EncodeRunner(file, clip).video(encoder=video_enc, zones=zones, **video_args) \
         .audio(encoder=audio_enc, **audio_args).mux(encoder_credit=encoder_credit)
 
     if patch:
