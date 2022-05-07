@@ -41,18 +41,6 @@ def resolve_ap_trims(trims: Range | List[Range], clip: VideoNode) -> List[List[R
     return [list(trim) for trim in nranges]
 
 
-# TODO: Make this a proper function that accurately gets the channel layout.
-#       Improving this function should be a priority!!!
-def get_channel_layout_str(channels: int) -> str:
-    """Very basic channel layout picker for AudioTracks"""
-    match channels:
-        case 2: return '2.0'
-        case 5: return '5.1'
-        case 1: return '1.0'
-        case 7: return '7.1'
-        case _: raise ValueError("get_channel_layout_str: 'Current channel count unsupported!'")
-
-
 def get_encoder_cores() -> int:
     """Returns the amount of cores to auto-relocate to the encoder"""
     return math.ceil(mp.cpu_count() * 0.4)

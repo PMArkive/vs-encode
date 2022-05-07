@@ -27,3 +27,7 @@ class NoChaptersError(ValueError):
 class NotEnoughValuesError(ValueError):
     def __init__(self, message: str = "Not enough values given!"):
         super().__init__(message)
+
+class AlreadyInChainError(ValueError):
+    def __init__(self, method: str, message: str = "You may only have one {method} in your chain!"):
+        super().__init__(message)

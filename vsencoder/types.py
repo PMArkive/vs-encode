@@ -1,11 +1,12 @@
 """
 Generic types.
 """
-from enum import IntEnum
 import os
+from enum import IntEnum
 from pathlib import Path
-from vardautomation import VPath
-from typing import List, Literal, Union
+from typing import List, Literal, Tuple, Union
+
+from vardautomation import DuplicateFrame, VPath
 
 __all__: List[str] = [
     'EncodersEnum'
@@ -16,6 +17,15 @@ __all__: List[str] = [
 VIDEO_ENCODER = Literal['x264', 'x265']
 LOSSLESS_VIDEO_ENCODER = Literal['nvencclossless', 'ffv1']
 AUDIO_ENCODER = Literal['passthrough', 'qaac', 'opus', 'fdkaac', 'flac']
+
+
+AudioTrim = Union[
+    List[int | None],
+    List[List[int | None]],
+    List[Union[Tuple[int | None, int | None], DuplicateFrame]],
+    Tuple[int | None, int | None],
+    None
+]
 
 
 FilePath = Union[str, os.PathLike, Path, VPath]
