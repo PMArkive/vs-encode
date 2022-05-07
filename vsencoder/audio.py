@@ -70,7 +70,7 @@ def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> Tuple[List[
     else:
         raise ValueError("Obj is not a FileInfo object or a path!")
 
-    return [track_channels, original_codecs]
+    return (track_channels, original_codecs)
 
 
 def run_ap(file_obj: FileInfo, is_aac: bool = True, trims: AudioTrim | None = None,
