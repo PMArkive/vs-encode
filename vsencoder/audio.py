@@ -57,21 +57,17 @@ def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> Tuple[List[
 
     if isinstance(obj, str):
         media_info: MediaInfo = MediaInfo.parse(obj)  # type:ignore[assignment]
-        for track in media_info.tracks:
-            if track.track_type == 'Audio':
-                track_channels += [track.channel_s]
-                original_codecs += [track.format]
-                if not all_tracks:
-                    break
     elif isinstance(obj, FileInfo):
-        for track in obj.media_info.tracks:
-            if track.track_type == 'Audio':
-                track_channels += [track.channel_s]
-                original_codecs += [track.format]
-                if not all_tracks:
-                    break
+        media_info: MediaInfo = obj.media_info
     else:
         raise ValueError("Obj is not a FileInfo object or a path!")
+
+    for track in media_info.tracks:
+        if track.track_type == 'Audio':
+            track_channels += [track.channel_s]
+            original_codecs += [track.format]
+            if not all_tracks:
+                break
 
     return (track_channels, original_codecs)
 
