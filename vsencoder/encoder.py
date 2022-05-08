@@ -324,7 +324,7 @@ class EncodeRunner:
                     self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **encoder_overrides)
                     self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
                 case _: raise ValueError(f"'\"{encoder}\" is not a valid audio encoder! "
-                                         "Please see the docstring for valid encoders!'")
+                                         "Please see the docstring for valid encoders.'")
 
         del file_copy
 
@@ -410,8 +410,6 @@ class EncodeRunner:
         """
         logger.success("Checking runner related settings...")
 
-        logger.info(f"Current file info:\n{self.file}\n")
-
         config = RunnerConfig(
             v_encoder=self.v_encoder,
             v_lossless_encoder=self.l_encoder,
@@ -482,24 +480,28 @@ class EncodeRunner:
         """
         Helper function that performs clean-up after running the encode.
         """
+        error: bool = False
+
         try:
-            match runner_object:
-                case type(SelfRunner):
-                    runner_object.work_files.remove(self.file.name_clip_output)
-                    if self.chapters_setup:
-                        runner_object.work_files.remove(self.file.chapter)
-                    runner_object.work_files.clear()
-                case type(Patch):
-                    runner_object.do_cleanup()
-                case _: raise ValueError("Invalid runner object passed!")
-        except Exception as e:
-            logger.warning(f"Ran into an issue while cleaning!\n{e}\nContinuing...")
+            runner_object.do_cleanup()
+        except AttributeError:
+            runner_object.work_files.remove(self.file.name_clip_output)
+
+            if self.chapters_setup:
+                runner_object.work_files.remove(self.file.chapter)
+
+            runner_object.work_files.clear()
+        except Exception:
+            error = True
 
         if self.audio_files:
             for track in self.audio_files:
                 try:
                     os.remove(track)
                 except FileNotFoundError:
-                    logger.warning(f"File \"{track}\" not found! Can't clean it up, so skipping.")
+                    error = True
 
-        logger.info("Cleaning up leftover files done!")
+        logger.success("Cleaning up leftover files done!")
+
+        if error:
+            logger.warning("There were errors while cleaning up. Not every file could be cleaned.")
