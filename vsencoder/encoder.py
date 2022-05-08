@@ -19,9 +19,9 @@ from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
 from vardautomation.utils import Properties
 from vsutil import get_depth
 
-from .audio import (iterate_ap_audio_files, iterate_cutter, iterate_encoder,
-                    iterate_extractors, iterate_tracks, run_ap,
-                    set_missing_tracks, get_track_info)
+from .audio import (get_track_info, iterate_ap_audio_files, iterate_cutter,
+                    iterate_encoder, iterate_extractors, iterate_tracks,
+                    run_ap, set_missing_tracks)
 from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
                          MissingDependenciesError, NoAudioEncoderError,
                          NoChaptersError, NoLosslessVideoEncoderError,
@@ -384,7 +384,7 @@ class EncodeRunner:
 
         # Adding all the tracks
         all_tracks: List[MediaTrack] = [
-            VideoTrack(self.file.name_clip_output.to_str(), encoder_credit, self.v_lang)
+            VideoTrack(self.file.name_clip_output, encoder_credit, self.v_lang)
         ]
 
         for track in self.a_tracks:
