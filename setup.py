@@ -8,7 +8,7 @@ with open("README.md") as fh:
 with open("requirements.txt") as fh:
     install_requires = fh.read()
 
-name = "vsencoder"
+name = "vsencode"
 version = "1.0.0"
 release = "1.0.0"
 
@@ -17,13 +17,13 @@ setuptools.setup(
     version=release,
     author="LightArrowsEXE",
     author_email="Lightarrowsreboot@gmail.com",
-    description="vs-encoder, an extensive wrapper around vardautomation.",
+    description="vs-encode, an extensive wrapper around vardautomation.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=["vsencoder"],
-    url="https://github.com/Irrational-Encoding-Wizardry/vs-encoder",
+    packages=["vsencode"],
+    url="https://github.com/Irrational-Encoding-Wizardry/vs-encode",
     package_data={
-        'vsencoder': ['py.typed'],
+        'vsencode': ['py.typed'],
     },
     install_requires=install_requires,
     classifiers=[

@@ -1,4 +1,4 @@
-# vs-encoder
+# vs-encode
 
 Requires Python 3.10.
 

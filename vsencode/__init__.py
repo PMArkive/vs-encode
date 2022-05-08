@@ -1,5 +1,5 @@
 """
-    vs-encoder, an extensive wrapper around vardautomation
+    vs-encode, an extensive wrapper around vardautomation
     to help make it easier to digest for newer video encoders.
 
     If you spot any issues, please don't hesitate to send in a Pull Request

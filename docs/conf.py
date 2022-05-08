@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'vs-encoder'
+project = 'vs-encode'
 copyright = '2022, LightArrowsEXE'
 author = 'LightArrowsEXE'
 

@@ -1,4 +1,4 @@
-vs-encoder Documentation
+vs-encode Documentation
 ---------------------
 
 About
@@ -8,7 +8,7 @@ About
     :target: https://discord.gg/qxTxVJGtst
 
 
-.. automodule:: vs_encoder
+.. automodule:: vsencode
     :members:
     :undoc-members:
     :show-inheritance:
