@@ -22,9 +22,12 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError("audio: missing dependency 'pymediainfo'")
 
 
-def resolve_ap_trims(trims: Range | List[Range], clip: vs.VideoNode) -> List[List[Range]]:
+def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> List[List[Range]]:
     """Convert list[tuple] into list[list]. begna pls"""
     from lvsfunc.util import normalize_ranges
+
+    if trims is None:
+        return [[0, clip.num_frames-1]]
 
     nranges = list(normalize_ranges(clip, trims))
     return [list(trim) for trim in nranges]
