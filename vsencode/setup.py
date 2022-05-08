@@ -8,8 +8,9 @@ import os
 import sys
 from configparser import ConfigParser
 from glob import glob
-from vardautomation import VPath
 from typing import Any, Dict, List
+
+from vardautomation import VPath, logger
 
 __all__: List[str] = [
     'IniSetup'
@@ -49,6 +50,7 @@ class IniSetup:
         config_name = custom_name or 'config.ini'
 
         if not os.path.exists(config_name):
+            logger.success(f"Generating ini file: {config_name}...")
             config['SETTINGS'] = {
                 'bdmv_dir': "BDMV",
                 'reserve_core': 'False',
