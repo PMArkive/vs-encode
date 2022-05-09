@@ -400,7 +400,7 @@ class EncodeRunner:
         return self
 
 
-    def run(self, clean_up: bool = True, /, order: str = 'video') -> None:
+    def run(self, clean_up: bool = True, /, order: str = 'video', *, deep_clean: bool = False) -> None:
         """
         Final runner method. This should be used AFTER setting up all the other details.
 
@@ -408,6 +408,7 @@ class EncodeRunner:
         :param order:           Order to encode the video and audio in.
                                 Setting it to "video" will first encode the video, and vice versa.
                                 This does not affect anything if AudioProcessor is used.
+        :param deep_clean:      Clean all common related project files. Default: False.
         """
         logger.success("Checking runner related settings...")
 
@@ -437,22 +438,25 @@ class EncodeRunner:
                 logger.error("\nError during muxing! No file was written. Exiting...")
 
         if clean_up:
-            self._perform_cleanup(runner)
+            self._perform_cleanup(runner, deep_clean=deep_clean)
 
 
     def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
-              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None) -> None:
+              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None,
+              deep_clean: bool = False) -> None:
         """
         Patching method. This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!
 
-        :ranges:            Frame ranges that require patching. Expects as a list of tuples or integers (can be mixed).
-                            Examples: [(0, 100), (400, 600)]; [50, (100, 200), 500].
-        :external_file:     File to patch into. This is intended for videos like NCs with only one or two changes
-                            so you don't need to encode the entire thing multiple times.
-                            It will copy the given file and rename it to ``FileInfo.name_file_final``.
-                            If None, performs regular patching on the original encode.
-        :param clean_up:    Clean up files after the patching is done. Default: True.
+        :ranges:                    Frame ranges that require patching. Expects as a list of tuples or integers (can be mixed).
+                                    Examples: [(0, 100), (400, 600)]; [50, (100, 200), 500].
+        :param clean_up:            Clean up files after the patching is done. Default: True.
+        :param external_file:       File to patch into. This is intended for videos like NCs with only one or two changes
+                                    so you don't need to encode the entire thing multiple times.
+                                    It will copy the given file and rename it to ``FileInfo.name_file_final``.
+                                    If None, performs regular patching on the original encode.
+        :param output_filename:     Custom output filename.
+        :param deep_clean:          Clean all common related project files. Default: False.
         """
         logger.success("Checking patching related settings...")
 
@@ -474,13 +478,15 @@ class EncodeRunner:
         runner.run()
 
         if clean_up:
-            self._perform_cleanup(runner)
+            self._perform_cleanup(runner, deep_clean=deep_clean)
 
 
-    def _perform_cleanup(self, runner_object: SelfRunner | Patch) -> None:
+    def _perform_cleanup(self, runner_object: SelfRunner | Patch, /, *, deep_clean: bool = False) -> None:
         """
         Helper function that performs clean-up after running the encode.
         """
+        logger.success("Trying to clean up project files...")
+
         error: bool = False
 
         try:
@@ -495,6 +501,11 @@ class EncodeRunner:
         except Exception:
             error = True
 
+        try:
+            os.remove(self.file.name)
+        except FileNotFoundError:
+            pass
+
         if self.audio_files:
             for track in self.audio_files:
                 try:
@@ -502,7 +513,39 @@ class EncodeRunner:
                 except FileNotFoundError:
                     error = True
 
-        logger.success("Cleaning up leftover files done!")
+        if deep_clean:
+            logger.success("Deep cleaning enabled. Trying to clean common non-essential project files...")
+
+            for ext in common_idx_ext:
+                try:
+                    os.remove(self.file.path_without_ext / VPath(ext))
+                except FileNotFoundError:
+                    pass
+
+            try:
+                if not os.path.isdir(os.path.join(parent, "done")):
+                    os.mkdir(os.path.join(parent, "done"))
+
+                no_py: bool = False
+                no_vpy: bool = False
+
+                try:
+                    shutil.move(self.file.name.to_str() + ".py", "done/" + self.file.name.to_str() + ".py")
+                except FileNotFoundError:
+                    no_py: True
+
+                try:
+                    shutil.move(self.file.name.to_str() + ".vpy", "done/" + self.file.name.to_str() + ".vpy")
+                except FileNotFoundError:
+                    no_vpy: True
+
+                if no_py and no_vpy:
+                    error = True
+            except OSError:
+                error = True
+
+        logger.success("Cleaning up done!")
 
         if error:
-            logger.warning("There were errors while cleaning up. Not every file could be cleaned.")
+            logger.warning("There were errors found while cleaning. "
+                           "Some files may not have been cleaned properly!")
