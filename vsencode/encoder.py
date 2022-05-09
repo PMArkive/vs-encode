@@ -49,10 +49,12 @@ class EncodeRunner:
     The following steps are included as methods:
 
         * video
+        * lossless
         * audio
         * chapter
         * mux
         * run
+        * patch
 
     You can chain them together like so:
         ``Encoder(file_obj, filtered_clip).video('x264').audio().mux().run()``
@@ -360,7 +362,7 @@ class EncodeRunner:
         return self
 
 
-    def mux(self, encoder_credit: str = '') -> "EncodeRunner":
+    def mux(self, encoder_credit: str = '', timecodes: str | None = None) -> "EncodeRunner":
         """
         Basic muxing-related setup for the final muxer.
         This will always output an mkv file.
@@ -368,6 +370,7 @@ class EncodeRunner:
         :param encoder_credit:      Name of the person encoding the video.
                                     For example: `encoder_name=LightArrowsEXE@Kaleido`.
                                     This will be included in the video track metadata.
+        :param timecodes:           Optional timecodes file. Used for VFR encodes.
         """
         if self.muxing_setup:
             raise AlreadyInChainError('mux')
@@ -389,6 +392,9 @@ class EncodeRunner:
             all_tracks += [track]
 
         self.muxer = MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
+
+        if timecodes is not None:
+            self.muxer = self.muxer.add_timestamps(timecodes)
 
         self.muxing_setup = True
         return self
