@@ -1,3 +1,11 @@
+from typing import List
+
+common_idx_ext: List[str] = ['lwi', 'ffindex']
+
+# These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
+reenc_codecs: List[str] = ['AC-3', 'EAC-3']
+
+
 class FrameLengthMismatch(ValueError):
     """Raised when the amount of frames between two clips don't match."""
     def __init__(self, len_a: int, len_b: int,

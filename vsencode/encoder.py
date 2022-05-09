@@ -25,7 +25,8 @@ from .audio import (get_track_info, iterate_ap_audio_files, iterate_cutter,
 from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
                          MissingDependenciesError, NoAudioEncoderError,
                          NoChaptersError, NoLosslessVideoEncoderError,
-                         NotEnoughValuesError, NoVideoEncoderError)
+                         NotEnoughValuesError, NoVideoEncoderError,
+                         common_idx_ext, reenc_codecs)
 from .helpers import get_encoder_cores, x264_get_matrix_str
 from .setup import IniSetup, VEncSettingsSetup, XmlGenerator
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
@@ -36,12 +37,6 @@ from .video import (finalize_clip, get_lossless_video_encoder,
 
 __all__: List[str] = [
     'EncodeRunner'
-]
-
-
-# These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
-reenc_codecs: List[str] = [
-    'AC-3', 'EAC-3'
 ]
 
 
