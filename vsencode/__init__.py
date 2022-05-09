@@ -10,10 +10,10 @@
 
 # flake8: noqa
 
-from . import encoder, exceptions, helpers, presets, setup, types, util
+from . import encoder, exceptions, helpers, presets, generate, types, util
 from .encoder import *
 from .exceptions import *
 from .presets import *
-from .setup import *
+from .generate import *
 from .types import *
 from .util import *

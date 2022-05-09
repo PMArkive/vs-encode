@@ -40,7 +40,6 @@ class AlreadyInChainError(ValueError):
     def __init__(self, method: str, message: str = "You may only have one {method} in your chain!"):
         super().__init__(message.format(method=method))
 
-
 class MissingDependenciesError(FileNotFoundError):
     def __init__(self, dependency: str, message: str = "Can't find dependency {dependency}!"):
         super().__init__(message.format(dependency=dependency))
