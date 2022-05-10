@@ -9,22 +9,22 @@ from vardautomation import FileInfo
 from .encoder import EncodeRunner
 
 __all__: List[str] = [
-    'encoder',
+    'encode',
     'x264_aac_preset', 'x264_flac_preset',
     'x265_aac_preset', 'x265_flac_preset'
 ]
 
 
-def encoder(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
-            video_enc: str = 'x264', audio_enc: str = 'qaac',
-            zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-            patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
-            encoder_credit: str = '', clean_up: bool = True,
-            video_args: Dict[str, Any] = {},
-            audio_args: Dict[str, Any] = {},
-            run_args: Dict[str, Any] = {},
-            patch_args: Dict[str, Any] = {},
-            ) -> None:
+def encode(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+           video_enc: str = 'x264', audio_enc: str = 'qaac',
+           zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
+           patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
+           encoder_credit: str = '', clean_up: bool = True,
+           video_args: Dict[str, Any] = {},
+           audio_args: Dict[str, Any] = {},
+           run_args: Dict[str, Any] = {},
+           patch_args: Dict[str, Any] = {},
+           ) -> None:
     """
     Basic encode runner function to steer the Encoder class with.
     This is meant to be used for simple encodes where you don't need to mess with the finer details too much.
@@ -75,8 +75,8 @@ def x264_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
     Default encoding runner using x264 for video and AudioProcessor (QAAC) to AAC for audio.
     See the `encoder` function for more information.
     """
-    encoder(file, clip, patch, 'x264', 'qaac', zones=zones, patch_ranges=patch_ranges,
-            encoder_credit=encoder_credit, clean_up=clean_up)
+    encode(file, clip, patch, 'x264', 'qaac', zones=zones, patch_ranges=patch_ranges,
+           encoder_credit=encoder_credit, clean_up=clean_up)
 
 
 def x264_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
@@ -87,8 +87,8 @@ def x264_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
     Default encoding runner using x264 for video and AudioProcessor (FLAC) to FLAC for audio.
     See the `encoder` function for more information.
     """
-    encoder(file, clip, patch, 'x264', 'flac', zones=zones, patch_ranges=patch_ranges,
-            encoder_credit=encoder_credit, clean_up=clean_up)
+    encode(file, clip, patch, 'x264', 'flac', zones=zones, patch_ranges=patch_ranges,
+           encoder_credit=encoder_credit, clean_up=clean_up)
 
 
 def x265_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
@@ -99,8 +99,8 @@ def x265_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
     Default encoding runner using x265 for video and AudioProcessor (QAAC) to AAC for audio.
     See the `encoder` function for more information.
     """
-    encoder(file, clip, patch, 'x265', 'qaac', zones=zones, patch_ranges=patch_ranges,
-            encoder_credit=encoder_credit, clean_up=clean_up)
+    encode(file, clip, patch, 'x265', 'qaac', zones=zones, patch_ranges=patch_ranges,
+           encoder_credit=encoder_credit, clean_up=clean_up)
 
 
 def x265_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
@@ -111,5 +111,5 @@ def x265_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
     Default encoding runner using x265 for video and AudioProcessor (FLAC) to FLAC for audio.
     See the `encoder` function for more information.
     """
-    encoder(file, clip, patch, 'x265', 'flac', zones=zones, patch_ranges=patch_ranges,
-            encoder_credit=encoder_credit, clean_up=clean_up)
+    encode(file, clip, patch, 'x265', 'flac', zones=zones, patch_ranges=patch_ranges,
+           encoder_credit=encoder_credit, clean_up=clean_up)
