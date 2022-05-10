@@ -12,6 +12,8 @@ from typing import Any, Dict, List
 
 from vardautomation import VPath, logger
 
+from .types import valid_file_values
+
 __all__: List[str] = [
     'IniSetup'
 ]
@@ -36,15 +38,25 @@ class IniSetup:
     output_name: str
     output_dir: str
 
+    # Vars for all the stuff in config. Stops mypy from complaining.
+    bdmv_dir: str
+    reserve_core: str
+    show_name: str
+    output_dir: str
+    output_name: str
+
     def __init__(self, custom_name: str | None = None,
+                 custom_output_name: str | None = None,
                  custom_args: Dict[Any, Any] = {},
                  showname_args: Dict[str, Any] = {},
-                 custom_output_name: str | None = None) -> None:
+                 ) -> None:
         """
         Obtain the settings from the config.ini file (or custom name) if it exists, else create ini file.
 
-        :param custom_name:     Custom name for ini file
-        :param custom_args:     Settings to override
+        :param custom_name:             Custom name for ini file.
+        :param custom_output_name:      Custom name for the output filename.
+        :param custom_args:             Settings to override.
+        :param showname_args:           Override settings for `get_show_name`.
         """
         config = ConfigParser()
         config_name = custom_name or 'config.ini'
@@ -53,7 +65,7 @@ class IniSetup:
             logger.success(f"Generating ini file: {config_name}...")
             config['SETTINGS'] = {
                 'bdmv_dir': "BDMV",
-                'reserve_core': 'False',
+                'reserve_core': str(False),
                 'show_name': self.get_show_name(caller_name, **showname_args)[0],
                 'output_dir': "Premux",
                 'output_name': custom_output_name or "$$_@@ (Premux)"
@@ -76,8 +88,9 @@ class IniSetup:
         """
         Finds the show's name from the file name. Also returns the episode number.
 
-        :param file_name:       Name of the file
-        :param key:             Key for splitting the file name. Defaults to `_`
+        :param file_name:       Name of the file. By default, it takes the name of the script calling it.
+        :param key:             Key for splitting the file name.
+                                Default: `_`.
         :param parents:         How many of the parents should be spliced together for the regular file name.
                                 See this as total number of _'s in file_name - 1.
                                 Default: Auto-calculate.
@@ -90,13 +103,16 @@ class IniSetup:
         file_name_split[-1] = os.path.splitext(file_name_split[-1])[0]
 
         if _parents > 1:
-            try:  # Check if final split is the episode number
-                int(file_name_split[-1])
-            except ValueError as e:
+            try:  # Check if final split is the episode number or an NC.
+                final = file_name_split[-1]
+                if any(valid in final.lower() for valid in valid_file_values):
+                    int(final)
+            except ValueError:
                 raise ValueError("get_show_name: 'Please make sure your file name is structured like so: "
                                  f"\"showname{key}ep\" current: {os.path.splitext(caller_name)[0]}. "
-                                 "This function expects you to follow this pattern to properly parse "
-                                 "all the information it needs!\n", e)
+                                 f"For specials, make sure it matches to one of the following: {valid_file_values}.\n"
+                                 "This function expects you to follow these patterns to properly parse "
+                                 "all the information it needs!\n")
 
             file_name_split[0] = ''.join(f'{sn}{key}' for sn in file_name_split[:-_parents])
 

@@ -19,6 +19,22 @@ __all__: List[str] = [
 ]
 
 
+# Valid filename values. Any of these MUST be in the filename for the right info to be parsed!
+# These should be extensive enough, but should it be missing something, please send in an Issue.
+valid_file_values: List[str] = [
+    'ncop', 'nced',
+    'op', 'ed',
+    'mv', 'ins',
+    'ova', 'ona', 'movie',
+    'menu', 'pv', 'cm', 'iv', 'cv',
+    'sp', 'preview',
+    'trailer', 'teaser', 'dc',
+    'digest', 'web', 'recap',
+    'alt', 'vol',
+    'genga', 'sb', 'ka', 'sakuga',
+]
+
+
 # TODO: Replace with proper enums
 VIDEO_CODEC = Literal['x264', 'h264', 'x265', 'h265']
 LOSSLESS_VIDEO_ENCODER = Literal['nvencclossless', 'ffv1']
