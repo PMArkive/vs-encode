@@ -8,7 +8,7 @@ from vardautomation import (FFV1, LosslessEncoder, NVEncCLossless,
 from vsutil import get_depth
 
 from .codecs import X264Custom, X265Custom
-from .exceptions import FrameLengthMismatch
+from .exceptions import FrameLengthMismatch, NoVideoEncoderError
 from .helpers import get_encoder_cores, verify_file_exists
 from .types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 
@@ -34,7 +34,8 @@ def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_CODEC,
     if not settings:
         settings = None
     elif isinstance(settings, str):
-        verify_file_exists(settings)
+        if not verify_file_exists(settings):
+            raise FileNotFoundError(f"Settings file not found at {settings}!")
     else:
         #VEncSettingsSetup(v_encoder)
         ...

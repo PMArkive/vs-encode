@@ -10,10 +10,13 @@
 
 # flake8: noqa
 
-from . import encoder, exceptions, helpers, presets, generate, types, util
+from vardautomation import VPath
+
+from . import encoder, exceptions, generate, helpers, presets, types, util
 from .encoder import *
 from .exceptions import *
-from .presets import *
 from .generate import *
+from .helpers import FileInfo
+from .presets import *
 from .types import *
 from .util import *

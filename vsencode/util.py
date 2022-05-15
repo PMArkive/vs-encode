@@ -10,10 +10,15 @@ from typing import Iterable, List
 
 import vapoursynth as vs
 from appdirs import AppDirs
+from vardautomation import VPath
 from vardautomation import get_vs_core as _get_vs_core
 
+from .generate import IniSetup
+
 __all__: List[str] = [
-    'get_shader'
+    'get_shader',
+    'get_timecodes_path',
+    'get_vs_core',
 ]
 
 
@@ -54,3 +59,17 @@ def get_vs_core(threads: Iterable[int | None] = None,
         threads = range(0, (threads_for_vs - 2) if reserve_core else range(0, threads_for_vs))
 
     return _get_vs_core(threads, max_cache_size)
+
+
+@cache
+def get_timecodes_path(create_dir: bool = True) -> VPath:
+    """
+    Generates path for your timecodes file, based off the caller's filename.
+    """
+    file_name = IniSetup().get_show_name()
+    tc_path = VPath(f".assets/{file_name[-1]}/{file_name[0]}_{file_name[-1]}_timecodes.txt")
+
+    if create_dir and not tc_path.parent.exists():
+        os.makedirs(tc_path.parent, exist_ok=True)
+
+    return tc_path

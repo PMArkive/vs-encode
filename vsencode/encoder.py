@@ -9,9 +9,9 @@ from lvsfunc import check_variable, get_prop
 from vardautomation import (FFV1, JAPANESE, X264, X265, AnyPath, AudioCutter,
                             AudioEncoder, AudioExtracter, AudioTrack, Chapter,
                             ChaptersTrack, Eac3toAudioExtracter, FDKAACEncoder,
-                            FileInfo, FlacEncoder, Lang, LosslessEncoder,
-                            MatroskaFile, MatroskaXMLChapters, MediaTrack,
-                            NVEncCLossless, OpusEncoder)
+                            FileInfo, FileInfo2, FlacEncoder, Lang,
+                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
+                            MediaTrack, NVEncCLossless, OpusEncoder)
 from vardautomation import PassthroughCutter as PassCutter
 from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
                             SelfRunner, Track, VideoLanEncoder, VideoTrack,
@@ -19,19 +19,22 @@ from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
 from vardautomation.utils import Properties
 from vsutil import get_depth
 
-from .audio import (get_track_info, iterate_ap_audio_files, iterate_cutter,
-                    iterate_encoder, iterate_extractors, iterate_tracks,
-                    run_ap, set_missing_tracks)
+from .audio import (check_aac_encoders_installed, check_ffmpeg_installed,
+                    check_qaac_installed, get_track_info,
+                    iterate_ap_audio_files, iterate_cutter, iterate_encoder,
+                    iterate_extractors, iterate_tracks, run_ap,
+                    set_eafile_properties, set_missing_tracks)
 from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
                          MissingDependenciesError, NoAudioEncoderError,
                          NoChaptersError, NoLosslessVideoEncoderError,
                          NotEnoughValuesError, NoVideoEncoderError,
                          common_idx_ext, reenc_codecs)
-from .helpers import get_encoder_cores, x264_get_matrix_str
 from .generate import IniSetup, VEncSettingsSetup, XmlGenerator
+from .helpers import get_encoder_cores, verify_file_exists, x264_get_matrix_str
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
                     VIDEO_CODEC, AudioTrim, PresetBackup)
+from .util import get_timecodes_path
 from .video import (finalize_clip, get_lossless_video_encoder,
                     get_video_encoder, validate_qp_clip)
 
@@ -63,7 +66,7 @@ class EncodeRunner:
 
     The only REQUIRED steps are `video` and `run`.
 
-    :param file:            FileInfo object.
+    :param file:            FileInfo/FileInfo2 object.
     :param clip:            VideoNode to use for the output.
                             This should be the filtered clip, or in other words,
                             the clip you want to encode as usual.
@@ -76,7 +79,7 @@ class EncodeRunner:
                             If None, assumes Japanese for all tracks.
     """
     # init vars
-    file: FileInfo
+    file: FileInfo | FileInfo2
     clip: vs.VideoNode
 
     # Whether we're encoding/muxing...
@@ -103,7 +106,7 @@ class EncodeRunner:
     audio_files: List[str] = []
 
 
-    def __init__(self, file: FileInfo, clip: vs.VideoNode,
+    def __init__(self, file: FileInfo | FileInfo2, clip: vs.VideoNode,
                  lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
 
@@ -172,7 +175,9 @@ class EncodeRunner:
             self.qp_clip = validate_qp_clip(self.clip, self.file.clip_cut)
 
         self.v_encoder.prefetch = prefetch or 0
-        self.v_encoder.resumable = True
+
+        if self.file.name_clip_output.exists():
+            self.v_encoder.resumable = True
 
         logger.info(f"Encoding video using {encoder}.")
         logger.info(f"Zones: {zones}")
@@ -214,6 +219,7 @@ class EncodeRunner:
         Basic audio-related setup for the output audio.
 
         Audio files are always trimmed using either AudioProcessor or Sox.
+        Note that you can't use AudioProcessor if you used FileInfo2 (py:param`load_audio`in `vsencoder.FileInfo`).
 
         :param encoder:                 What encoder/setup to use when encoding the audio.
                                         Valid options are: passthrough, aac, opus, fdkaac, flac.
@@ -272,7 +278,7 @@ class EncodeRunner:
             for track in file_copy.media_info.tracks:
                 if track.track_type == 'Audio':
                     track_count += 1
-            track_count = track_count - 1  # To compensate for the extra track counted
+            track_count = track_count - 1   # To compensate for the extra track counted
 
         track_channels, original_codecs = get_track_info(self.file)
 
@@ -281,6 +287,11 @@ class EncodeRunner:
                            "Will be automatically set to encode using FLAC instead.\n"
                            f"The following codecs are unsupported: {reenc_codecs}")
             enc = 'flac'
+
+        if hasattr(self.file, "audios") and use_ap:
+            use_ap = False
+            self.file
+            logger.warning("FileInfo object has audionodes! Disabling AudioProcessor and using internal tools...")
 
         if enc in ('aac', 'flac') and use_ap:
             is_aac = enc == 'aac'
@@ -295,31 +306,22 @@ class EncodeRunner:
                                                    all_tracks=all_tracks, codec='AAC' if is_aac else 'FLAC',
                                                    xml_file=xml_file, lang=self.a_lang)
         else:
+            if hasattr(self.file, "audios"):
+                self.file.write_a_src_cut(1)
+            else:
+                self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+
+            self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
+
+            # Purely so we can get >120 chars
+            sets = encoder_overrides
+
             match enc:
-                case 'passthrough':
-                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
-                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
-                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
-                case 'aac':
-                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
-                    self.a_cutters = iterate_cutter(file_copy, PassCutter, tracks=track_count, **cutter_overrides)
-                    self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **encoder_overrides)
-                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
-                case 'flac':
-                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
-                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
-                    self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **encoder_overrides)
-                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
-                case 'opus':
-                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
-                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
-                    self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **encoder_overrides)
-                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
-                case 'fdkaac':
-                    self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
-                    self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
-                    self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **encoder_overrides)
-                    self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
+                case 'passthrough': pass
+                case 'aac': self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **sets)
+                case 'flac': self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **sets)
+                case 'opus': self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **sets)
+                case 'fdkaac': self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **sets)
                 case _: raise ValueError(f"'\"{encoder}\" is not a valid audio encoder! "
                                          "Please see the docstring for valid encoders.'")
 
@@ -362,7 +364,7 @@ class EncodeRunner:
         return self
 
 
-    def mux(self, encoder_credit: str = '', timecodes: str | None = None) -> "EncodeRunner":
+    def mux(self, encoder_credit: str = '', timecodes: str | bool | None = None) -> "EncodeRunner":
         """
         Basic muxing-related setup for the final muxer.
         This will always output an mkv file.
@@ -393,8 +395,12 @@ class EncodeRunner:
 
         self.muxer = MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
 
-        if timecodes is not None:
-            self.muxer = self.muxer.add_timestamps(timecodes)
+        if isinstance(timecodes, str):
+            self.muxer.add_timestamps(timecodes)
+        elif timecodes is None:
+            tc_path = get_timecodes_path()
+            if tc_path.exists():
+                self.muxer.add_timestamps(get_timecodes_path())
 
         self.muxing_setup = True
         return self
@@ -432,10 +438,11 @@ class EncodeRunner:
         try:  # TODO: Figure out why this throws an error.
             runner.run()
         except Exception:
-            if self.file.name_file_final.exists():
-                logger.warning("\nError during muxing, but file was muxed properly! Continuing...")
-            else:
-                logger.error("\nError during muxing! No file was written. Exiting...")
+            clean_up = False
+            logger.warning("Some kind of error occured during the run! Disabling post clean-up...")
+
+        if not self.file.name_file_final.exists():
+            raise FileNotFoundError(f"Could not find {self.file.name_file_final}! Aborting...")
 
         if clean_up:
             self._perform_cleanup(runner, deep_clean=deep_clean)
@@ -476,6 +483,9 @@ class EncodeRunner:
         )
 
         runner.run()
+
+        if not verify_file_exists(self.file.name_file_final):
+            raise FileNotFoundError(f"Could not find {self.file.name_file_final}! Aborting...")
 
         if clean_up:
             self._perform_cleanup(runner, deep_clean=deep_clean)
@@ -522,24 +532,29 @@ class EncodeRunner:
                 except FileNotFoundError:
                     pass
 
+            if self.lossless_setup:
+                try:
+                    os.remove(self.file.name_clip_output.append_stem('_lossless').to_str())
+                except FileNotFoundError:
+                    pass
+
             try:
-                if not os.path.isdir(os.path.join(parent, "done")):
-                    os.mkdir(os.path.join(parent, "done"))
+                if not os.path.isdir(os.path.join(self.file.workdir, ".done")):
+                    os.mkdir(os.path.join(self.file.workdir, ".done"))
 
-                no_py: bool = False
-                no_vpy: bool = False
-
-                try:
-                    shutil.move(self.file.name.to_str() + ".py", "done/" + self.file.name.to_str() + ".py")
-                except FileNotFoundError:
-                    no_py: True
+                script_error: int = 0
 
                 try:
-                    shutil.move(self.file.name.to_str() + ".vpy", "done/" + self.file.name.to_str() + ".vpy")
+                    shutil.move(str(self.file.name) + ".py", "done/" + str(self.file.name) + ".py")
                 except FileNotFoundError:
-                    no_vpy: True
+                    script_error += 1
 
-                if no_py and no_vpy:
+                try:
+                    shutil.move(str(self.file.name) + ".vpy", "done/" + str(self.file.name) + ".vpy")
+                except FileNotFoundError:
+                    script_error += 1
+
+                if script_error > 1:
                     error = True
             except OSError:
                 error = True

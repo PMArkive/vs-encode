@@ -7,10 +7,9 @@ import vapoursynth as vs
 from bvsfunc.util import AudioProcessor as ap
 from lvsfunc.types import Range
 from vardautomation import (JAPANESE, AudioCutter, AudioEncoder,
-                            AudioExtracter, AudioTrack, AudioTrack,
-                            Eac3toAudioExtracter, FDKAACEncoder, FileInfo,
-                            Lang, Preset, QAACEncoder, SoxCutter, VPath,
-                            logger)
+                            AudioExtracter, AudioTrack, Eac3toAudioExtracter,
+                            FDKAACEncoder, FileInfo, Lang, Preset, QAACEncoder,
+                            SoxCutter, VPath, logger)
 
 from .exceptions import MissingDependenciesError
 from .types import (BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
@@ -113,10 +112,10 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
                            lang: Lang = JAPANESE) -> List[AudioTrack]:
     a_tracks: List[AudioTrack] = []
 
-    xml_arg: Tuple(str, str) = ()
+    xml_arg: Tuple[str, str] = ()
     # TODO: Multi-track support
     if isinstance(xml_file, str):
-        xml_arg: Tuple(str, str) = ('--tags', f'0:{str(xml_file)}')
+        xml_arg = ('--tags', f'0:{str(xml_file)}')
 
     for i, (track, channels) in enumerate(zip(audio_files, track_channels), 1):
         a_tracks += [AudioTrack(VPath(track).format(i), f'{codec.upper()} {get_channel_layout_str(channels)}',
@@ -129,8 +128,6 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
 
 
 no_track_warning: str = "There must be at least one audio track in your file!"
-track_num_str: str = r"{track_number:s}"
-track_num_out_str: str = "_track_{track_number:s}"
 
 
 def iterate_cutter(file_obj: FileInfo, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter,
@@ -140,9 +137,9 @@ def iterate_cutter(file_obj: FileInfo, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter
         raise ValueError(no_track_warning)
 
     if file_obj.a_src_cut is None and out_path:
-        if track_num_str not in str(file_obj.a_src_cut):
+        if r"{track_number:s}" not in str(file_obj.a_src_cut):
             og_path = os.path.splitext(out_path)
-            out_path = VPath(og_path[0] + track_num_out_str + og_path[1])
+            out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_src_cut = out_path
 
     cutters: List[BUILTIN_AUDIO_CUTTERS] = []
@@ -161,13 +158,10 @@ def iterate_encoder(file_obj: FileInfo, encoder: BUILTIN_AUDIO_ENCODERS = QAACEn
         raise ValueError(no_track_warning)
 
     if file_obj.a_enc_cut is None and out_path:
-        if track_num_str not in str(file_obj.a_enc_cut):
+        if r"track_number:s" not in str(file_obj.a_enc_cut):
             og_path = os.path.splitext(out_path)
-            out_path = VPath(og_path[0] + track_num_out_str + og_path[1])
+            out_path = VPath(og_path[0] + r"_track_\{track_number:s\}" + og_path[1])
         file_obj.a_enc_cut = out_path
-
-    if encoder not in (QAACEncoder, FDKAACEncoder):
-        xml_file = None
 
     if xml_file is None:
         xml_file: List[str] | List[None] = []  # type:ignore[no-redef]
@@ -179,24 +173,33 @@ def iterate_encoder(file_obj: FileInfo, encoder: BUILTIN_AUDIO_ENCODERS = QAACEn
         for i in range(tracks):
             xml_file += [xml_file_og]  # type:ignore[operator]
 
+    if encoder in (QAACEncoder, FDKAACEncoder):
+        overrides |= dict(xml_file=xml_file)
+
     encoders: List[BUILTIN_AUDIO_ENCODERS] = []
 
     for i in range(tracks):
-        encoders += [encoder(file_obj, track=i, xml_file=xml_file[i], **overrides)]  # type:ignore[index, list-item]
+        encoders += [encoder(file_obj, track=i, **overrides)]  # type:ignore[index, list-item, call-arg]
 
     return encoders
 
 
 def iterate_extractors(file_obj: FileInfo, extractor: BUILTIN_AUDIO_EXTRACTORS = Eac3toAudioExtracter,
                        tracks: int = 1, out_path: VPath | None = None,
-                       **overrides: Any) -> List[BUILTIN_AUDIO_EXTRACTORS]:
+                       **overrides: Any) -> List[BUILTIN_AUDIO_EXTRACTORS] | None:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
+        try:
+            file_obj.write_a_src_cut(1)
+        except NameError:
+            logger.warning("`Audios` attribute found! Extracting audio with `write_a_src_cut`...")
+            return None
+
     if file_obj.a_src_cut is None and out_path:
-        if track_num_str not in str(file_obj.a_src_cut):
+        if r"{track_number:s}" not in str(file_obj.a_src_cut):
             og_path = os.path.splitext(out_path)
-            out_path = VPath(og_path[0] + track_num_out_str + og_path[1])
+            out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_src_cut = out_path
 
     extractors: List[BUILTIN_AUDIO_EXTRACTORS] = []
@@ -214,9 +217,9 @@ def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None =
         raise ValueError(no_track_warning)
 
     if file_obj.a_enc_cut is None and out_path:
-        if track_num_str not in str(file_obj.a_enc_cut):
+        if r"{track_number:s}" not in str(file_obj.a_enc_cut):
             og_path = os.path.splitext(out_path)
-            out_path = VPath(og_path[0] + track_num_out_str + og_path[1])
+            out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_enc_cut = out_path
 
     if codecs is None:
@@ -232,8 +235,12 @@ def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None =
     audio_tracks: List[AudioTrack] = []
 
     for i in range(tracks):
-        audio_tracks += [AudioTrack(file_obj.a_enc_cut.format(i),  # type:ignore[union-attr]
-                                    codecs[i], lang, tid=i, **overrides)]  # type:ignore[index]
+        audio_tracks += [AudioTrack(
+            file_obj.a_enc_cut.format(i),
+            codecs[i],
+            lang,
+            i
+        )]
 
     return audio_tracks
 
