@@ -8,7 +8,7 @@ from bvsfunc.util import AudioProcessor as ap
 from lvsfunc.types import Range
 from vardautomation import (JAPANESE, AudioCutter, AudioEncoder,
                             AudioExtracter, AudioTrack, Eac3toAudioExtracter,
-                            FDKAACEncoder, FileInfo, Lang, Preset, QAACEncoder,
+                            FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
                             SoxCutter, VPath, logger)
 
 from .exceptions import MissingDependenciesError
@@ -32,11 +32,11 @@ def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> L
     return [list(trim) for trim in nranges]
 
 
-def set_eafile_properties(file_obj: FileInfo,
+def set_eafile_properties(file_obj: FileInfo2,
                           external_audio_file: str,
                           external_audio_clip: vs.VideoNode | None = None,
                           trims: AudioTrim | None = None,
-                          use_ap: bool = True) -> FileInfo:
+                          use_ap: bool = True) -> FileInfo2:
     file_obj.path = VPath(external_audio_file)
     file_obj.path_without_ext = VPath(os.path.splitext(external_audio_file)[0])
     file_obj.work_filename = file_obj.path.stem
@@ -50,16 +50,16 @@ def set_eafile_properties(file_obj: FileInfo,
     return file_obj
 
 
-def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> Tuple[List[int] | List[str]]:
+def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int] | List[str]]:
     track_channels: List[int] = []
     original_codecs: List[str] = []
 
     if isinstance(obj, str):
         media_info: MediaInfo = MediaInfo.parse(obj)  # type:ignore[assignment]
-    elif isinstance(obj, FileInfo):
+    elif isinstance(obj, FileInfo2):
         media_info: MediaInfo = obj.media_info
     else:
-        raise ValueError("Obj is not a FileInfo object or a path!")
+        raise ValueError("Obj is not a FileInfo2 object or a path!")
 
     for track in media_info.tracks:
         if track.track_type == 'Audio':
@@ -71,7 +71,7 @@ def get_track_info(obj: FileInfo | str, all_tracks: bool = False) -> Tuple[List[
     return (track_channels, original_codecs)
 
 
-def run_ap(file_obj: FileInfo, is_aac: bool = True, trims: AudioTrim | None = None,
+def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: AudioTrim | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
     return ap.video_source(  # type:ignore[no-any-return]
         in_file=file_obj.path.to_str(),
@@ -118,7 +118,8 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
         xml_arg = ('--tags', f'0:{str(xml_file)}')
 
     for i, (track, channels) in enumerate(zip(audio_files, track_channels), 1):
-        a_tracks += [AudioTrack(VPath(track).format(i), f'{codec.upper()} {get_channel_layout_str(channels)}',
+        a_tracks += [AudioTrack(VPath(track).format(track_number=i),
+                                f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 lang, i, *xml_arg)]
 
         if not all_tracks:
@@ -130,7 +131,7 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
 no_track_warning: str = "There must be at least one audio track in your file!"
 
 
-def iterate_cutter(file_obj: FileInfo, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter,
+def iterate_cutter(file_obj: FileInfo2, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter,
                    tracks: int = 1, out_path: VPath | None = None,
                    **overrides: Any) -> List[BUILTIN_AUDIO_CUTTERS]:
     if tracks < 1:
@@ -150,7 +151,7 @@ def iterate_cutter(file_obj: FileInfo, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter
     return cutters
 
 
-def iterate_encoder(file_obj: FileInfo, encoder: BUILTIN_AUDIO_ENCODERS = QAACEncoder,
+def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACEncoder,
                     tracks: int = 1, out_path: VPath | None = None,
                     xml_file: str | List[str] | List[None] | None = None,
                     **overrides: Any) -> List[BUILTIN_AUDIO_ENCODERS]:
@@ -184,7 +185,7 @@ def iterate_encoder(file_obj: FileInfo, encoder: BUILTIN_AUDIO_ENCODERS = QAACEn
     return encoders
 
 
-def iterate_extractors(file_obj: FileInfo, extractor: BUILTIN_AUDIO_EXTRACTORS = Eac3toAudioExtracter,
+def iterate_extractors(file_obj: FileInfo2, extractor: BUILTIN_AUDIO_EXTRACTORS = Eac3toAudioExtracter,
                        tracks: int = 1, out_path: VPath | None = None,
                        **overrides: Any) -> List[BUILTIN_AUDIO_EXTRACTORS] | None:
     if tracks < 1:
@@ -210,9 +211,8 @@ def iterate_extractors(file_obj: FileInfo, extractor: BUILTIN_AUDIO_EXTRACTORS =
     return extractors
 
 
-def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None = None,
-                   codecs: str | List[str] | None = None, lang: Lang = JAPANESE,
-                   **overrides: Any) -> List[AudioTrack]:
+def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None = None,
+                   codecs: str | List[str] | None = None, lang: Lang = JAPANESE) -> List[AudioTrack]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -236,7 +236,7 @@ def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None =
 
     for i in range(tracks):
         audio_tracks += [AudioTrack(
-            file_obj.a_enc_cut.format(i),
+            file_obj.a_enc_cut.format(track_number=i),
             codecs[i],
             lang,
             i
@@ -245,8 +245,8 @@ def iterate_tracks(file_obj: FileInfo, tracks: int = 1, out_path: VPath | None =
     return audio_tracks
 
 
-def set_missing_tracks(file_obj: FileInfo, preset: Preset = PresetBackup,
-                       use_ap: bool = True) -> FileInfo:
+def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup,
+                       use_ap: bool = True) -> FileInfo2:
     try:
         assert isinstance(file_obj.a_src, VPath)
     except AssertionError:

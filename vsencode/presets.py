@@ -4,7 +4,7 @@ Common encoding presets.
 from typing import Any, Dict, List, Tuple
 
 import vapoursynth as vs
-from vardautomation import FileInfo
+from vardautomation import FileInfo2
 
 from .encoder import EncodeRunner
 
@@ -15,7 +15,7 @@ __all__: List[str] = [
 ]
 
 
-def encode(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+def encode(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
            video_enc: str = 'x264', audio_enc: str = 'qaac',
            zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
            patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
@@ -39,7 +39,7 @@ def encode(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
 
     See the Encoder class for further information.
 
-    :param file:            FileInfo object.
+    :param file:            FileInfo2 object.
     :param clip:            Input VideoNode.
     :param patch:           Patching mode. If False, runs a regular encoder.
     :param video_enc:       Encoder to use for the video. See `Encoder.video` for more info.
@@ -67,7 +67,7 @@ def encode(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
         chain.run(clean_up=clean_up, **run_args)
 
 
-def x264_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+def x264_aac_preset(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
                     patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
                     encoder_credit: str = '', clean_up: bool = True) -> None:
@@ -79,7 +79,7 @@ def x264_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
            encoder_credit=encoder_credit, clean_up=clean_up)
 
 
-def x264_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+def x264_flac_preset(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                      zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
                      patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
                      encoder_credit: str = '', clean_up: bool = True) -> None:
@@ -91,7 +91,7 @@ def x264_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
            encoder_credit=encoder_credit, clean_up=clean_up)
 
 
-def x265_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+def x265_aac_preset(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
                     patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
                     encoder_credit: str = '', clean_up: bool = True) -> None:
@@ -103,7 +103,7 @@ def x265_aac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
            encoder_credit=encoder_credit, clean_up=clean_up)
 
 
-def x265_flac_preset(file: FileInfo, clip: vs.VideoNode, patch: bool = False,
+def x265_flac_preset(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                      zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
                      patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
                      encoder_credit: str = '', clean_up: bool = True) -> None:

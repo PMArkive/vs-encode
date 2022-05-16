@@ -13,7 +13,7 @@ from lvsfunc.misc import source
 from lvsfunc.util import get_prop
 from vapoursynth import VideoNode
 from vardautomation import AnyPath, DuplicateFrame
-from vardautomation import FileInfo as _FileInfo
+from vardautomation import FileInfo2
 from vardautomation import Preset, Trim, VPath, VPSIdx
 
 from .types import FilePath, PresetBackup
@@ -49,9 +49,9 @@ def x264_get_matrix_str(matrix: int) -> str:
 
 def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None=None,
              /, idx: VPSIdx| None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
-             load_audio: bool = True, *, workdir: AnyPath = VPath().cwd()) -> _FileInfo:
+             *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
     """
-    FileInfo generator using vardautomation's built-in FileInfo generators,
+    FileInfo generator using vardautomation's built-in FileInfo2 generator,
     exposed through vs-encode for convenience with a couple of extra changes.
 
     :param path:            Path to your source file.
@@ -59,8 +59,6 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None=Non
     :param idx:             Indexer used to index the video track. Defaults to :py:data:`lvsfunc.misc.source`.
     :param preset:          Preset used to fill idx, a_src, a_src_cut, a_enc_cut and chapter attributes.
                             Defaults to :py:data:`.PresetBackup`, a custom Preset.
-    :param load_audio:      Whether to load audio through VapourSynth. If True, generate a FileInfo2 object.
-                            Else a regular FileInfo object. Defaults to True.
     :param workdir:         Work directory. Defaults to the current directorie where the script is launched.
 
     :returns:               A FileInfo object containing all the information
@@ -68,11 +66,9 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None=Non
     """
     from vardautomation import FileInfo2, PresetBDWAV64
 
-    info_obj = FileInfo2 if load_audio else _FileInfo
-
     if preset is not None:
         list_of_presets = [preset]
-        if len(list_of_presets) == 1 and load_audio:
+        if len(list_of_presets) == 1:
             preset = [preset, PresetBDWAV64]
 
-    return info_obj(path, trims_or_dfs=trims, idx=idx, preset=preset, workdir=workdir)
+    return FileInfo2(path, trims_or_dfs=trims, idx=idx, preset=preset, workdir=workdir)

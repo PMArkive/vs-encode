@@ -9,9 +9,9 @@ from lvsfunc import check_variable, get_prop
 from vardautomation import (FFV1, JAPANESE, X264, X265, AnyPath, AudioCutter,
                             AudioEncoder, AudioExtracter, AudioTrack, Chapter,
                             ChaptersTrack, Eac3toAudioExtracter, FDKAACEncoder,
-                            FileInfo, FileInfo2, FlacEncoder, Lang,
-                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
-                            MediaTrack, NVEncCLossless, OpusEncoder)
+                            FileInfo2, FlacEncoder, Lang, LosslessEncoder,
+                            MatroskaFile, MatroskaXMLChapters, MediaTrack,
+                            NVEncCLossless, OpusEncoder)
 from vardautomation import PassthroughCutter as PassCutter
 from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
                             SelfRunner, Track, VideoLanEncoder, VideoTrack,
@@ -66,7 +66,7 @@ class EncodeRunner:
 
     The only REQUIRED steps are `video` and `run`.
 
-    :param file:            FileInfo/FileInfo2 object.
+    :param file:            FileInfo2 object.
     :param clip:            VideoNode to use for the output.
                             This should be the filtered clip, or in other words,
                             the clip you want to encode as usual.
@@ -79,7 +79,7 @@ class EncodeRunner:
                             If None, assumes Japanese for all tracks.
     """
     # init vars
-    file: FileInfo | FileInfo2
+    file: FileInfo2
     clip: vs.VideoNode
 
     # Whether we're encoding/muxing...
@@ -106,7 +106,7 @@ class EncodeRunner:
     audio_files: List[str] = []
 
 
-    def __init__(self, file: FileInfo | FileInfo2, clip: vs.VideoNode,
+    def __init__(self, file: FileInfo2, clip: vs.VideoNode,
                  lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
 
@@ -210,16 +210,16 @@ class EncodeRunner:
 
 
     def audio(self, encoder: AUDIO_CODEC = 'aac',
-              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = True,
+              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = False,
               *, fps: Fraction | float | None = None, custom_trims: AudioTrim | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
-              extract_overrides: Dict[str, Any] = {}, cutter_overrides: Dict[str, Any] = {},
-              encoder_overrides: Dict[str, Any] = {}, track_overrides: Dict[str, Any] = {}) -> "EncodeRunner":
+              extract_overrides: Dict[str, Any] = {},
+              encoder_overrides: Dict[str, Any] = {},
+              track_overrides: Dict[str, Any] = {}) -> "EncodeRunner":
         """
         Basic audio-related setup for the output audio.
 
         Audio files are always trimmed using either AudioProcessor or Sox.
-        Note that you can't use AudioProcessor if you used FileInfo2 (py:param`load_audio`in `vsencoder.FileInfo`).
 
         :param encoder:                 What encoder/setup to use when encoding the audio.
                                         Valid options are: passthrough, aac, opus, fdkaac, flac.
@@ -237,7 +237,6 @@ class EncodeRunner:
         :param custom_trims             Custom trims for audio trimming.
                                         If None, uses file.trims_or_dfs.
         :param extract_overrides:       Overrides for Eac3toAudioExtracter's cutting.
-        :param cutter_overrides:        Overrides for SoxCutter's cutting.
         :param encoder_overrides:       Overrides for the encoder settings.
         :param track_overrides:         Overrides for the audio track settings.
         """
@@ -288,11 +287,6 @@ class EncodeRunner:
                            f"The following codecs are unsupported: {reenc_codecs}")
             enc = 'flac'
 
-        if hasattr(self.file, "audios") and use_ap:
-            use_ap = False
-            self.file
-            logger.warning("FileInfo object has audionodes! Disabling AudioProcessor and using internal tools...")
-
         if enc in ('aac', 'flac') and use_ap:
             is_aac = enc == 'aac'
 
@@ -311,7 +305,7 @@ class EncodeRunner:
             else:
                 self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
 
-            self.a_tracks = iterate_tracks(file_copy, tracks=track_count, **track_overrides)
+            self.a_tracks = iterate_tracks(file_copy, tracks=track_count)
 
             # Purely so we can get >120 chars
             sets = encoder_overrides
@@ -460,7 +454,7 @@ class EncodeRunner:
         :param clean_up:            Clean up files after the patching is done. Default: True.
         :param external_file:       File to patch into. This is intended for videos like NCs with only one or two changes
                                     so you don't need to encode the entire thing multiple times.
-                                    It will copy the given file and rename it to ``FileInfo.name_file_final``.
+                                    It will copy the given file and rename it to ``FileInfo2.name_file_final``.
                                     If None, performs regular patching on the original encode.
         :param output_filename:     Custom output filename.
         :param deep_clean:          Clean all common related project files. Default: False.
