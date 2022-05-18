@@ -210,7 +210,7 @@ class EncodeRunner:
 
 
     def audio(self, encoder: AUDIO_CODEC = 'aac',
-              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = False,
+              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = True,
               *, fps: Fraction | float | None = None, custom_trims: AudioTrim | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
               extract_overrides: Dict[str, Any] = {},
