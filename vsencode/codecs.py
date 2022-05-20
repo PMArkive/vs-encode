@@ -31,10 +31,7 @@ class X264Custom(X264):
 
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
-            thread=get_encoder_cores(),
-            matrix=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int)),
-            primaries=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int)),
-            transfer=x264_get_matrix_str(self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int)))
+            thread=get_encoder_cores())
 
 
 class X265Custom(X265):
@@ -57,7 +54,4 @@ class X265Custom(X265):
 
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
-            thread=get_encoder_cores(),
-            matrix=self.props_obj.get_prop(self.clip.get_frame(0), '_Matrix', int),
-            primaries=self.props_obj.get_prop(self.clip.get_frame(0), '_Primaries', int),
-            transfer=self.props_obj.get_prop(self.clip.get_frame(0), '_Transfer', int))
+            thread=get_encoder_cores())
