@@ -1,7 +1,6 @@
 from typing import Any, Dict, List
 
 from vardautomation.tooling.video import X264, X265
-from vardautomation.utils import Properties
 
 from .helpers import get_encoder_cores, x264_get_matrix_str
 
@@ -27,8 +26,6 @@ class X264Custom(X264):
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (s)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (s)
     """
-    props_obj = Properties()
-
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
             thread=get_encoder_cores())
@@ -50,8 +47,6 @@ class X265Custom(X265):
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (d)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (d)
     """
-    props_obj = Properties()
-
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
             thread=get_encoder_cores())

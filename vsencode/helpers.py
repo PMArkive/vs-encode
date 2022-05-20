@@ -35,18 +35,6 @@ def verify_file_exists(path: FilePath) -> bool:
     return VPath(path).exists()
 
 
-def x264_get_matrix_str(matrix: int) -> str:
-    """Very basic matrix getter"""
-    match matrix:
-        case 1: return 'bt709'
-        case 2: return 'undef'
-        case 5: return 'bt470m'
-        case 6: return 'smpte170m'
-        case 7: return 'smpte240m'
-        case 9: raise ValueError("x264_get_matrix_str: 'x264 does not support BT2020 yet!'")
-        case _: raise ValueError("x264_get_matrix_str: 'Invalid matrix passed!'")
-
-
 def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None=None,
              /, idx: VPSIdx| None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
              *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
