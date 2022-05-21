@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 from vardautomation.tooling.video import X264, X265
 
-from .helpers import get_encoder_cores, x264_get_matrix_str
+from .helpers import get_encoder_cores
 
 __all__: List[str] = [
     'X264Custom',

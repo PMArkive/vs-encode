@@ -30,7 +30,7 @@ from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
                          NotEnoughValuesError, NoVideoEncoderError,
                          common_idx_ext, reenc_codecs)
 from .generate import IniSetup, VEncSettingsSetup, XmlGenerator
-from .helpers import get_encoder_cores, verify_file_exists, x264_get_matrix_str
+from .helpers import get_encoder_cores, verify_file_exists
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
                     VIDEO_CODEC, AudioTrim, PresetBackup)
