@@ -1,6 +1,8 @@
 """
 Generic types.
 """
+from __future__ import annotations
+
 import os
 from enum import IntEnum
 from pathlib import Path

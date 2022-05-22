@@ -4,6 +4,8 @@ Basic classes and functions for setting up the Encoder.
 These are run automatically when necessary,
 but are recommended to run prior to running Encoder.
 """
+from __future__ import annotations
+
 import os
 import sys
 from configparser import ConfigParser

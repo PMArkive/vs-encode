@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List
 
 common_idx_ext: List[str] = ['lwi', 'ffindex']
