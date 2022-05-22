@@ -59,7 +59,7 @@ def get_lossless_video_encoder(l_encoder: str | LosslessEncoder | LOSSLESS_VIDEO
     else:
         l_encoder = l_encoder.lower()
         match l_encoder:
-            case 'nvencclossless': return NVEncCLossless(**encoder_settings)
+            case 'nvencclossless' | 'nvenc': return NVEncCLossless(**encoder_settings)
             case 'ffv1': return FFV1(threads=threads)
             case _: raise ValueError("Invalid lossless video encoder!")
 

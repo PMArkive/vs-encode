@@ -101,6 +101,7 @@ class EncodeRunner:
 
     # Video-related vars
     qp_clip: vs.VideoNode | None = None
+    post_lossless: Callable[[VPath], vs.VideoNode] | None = None
 
     # Audio-related vars
     audio_files: List[str] = []
@@ -192,7 +193,19 @@ class EncodeRunner:
 
 
     def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
+                 /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
                  **enc_overrides: Any) -> "EncodeRunner":
+        """
+        Create a lossless intermediary file.
+
+        :param encoder:                 What encoder to use for the lossless encode.
+                                        Valid options are ffv1 and nvenc/nvencclossless.
+        :param post_filterchain:        Filterchain to perform on the lossless video
+                                        before being passed to the regular encoder.
+                                        This is useful for minor changes, as well as creating a version
+                                        with and without hardsubs or something.
+        :param enc_overrides:           Overrides for the encoder settings.
+        """
         if self.lossless_setup:
             raise AlreadyInChainError('lossless')
 
@@ -202,6 +215,12 @@ class EncodeRunner:
             self.l_encoder = get_lossless_video_encoder(encoder, **enc_overrides)
         else:
             raise NoLosslessVideoEncoderError
+
+        if callable(post_filterchain):
+            self.post_lossless = post_filterchain
+        elif post_filterchain is not None:
+            logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchian)}! "
+                         "If you are passing a function, remove the ()'s and try again.")
 
         logger.info(f"Creating an intermediary lossless encode using {encoder}.")
 
@@ -425,11 +444,13 @@ class EncodeRunner:
 
         runner = SelfRunner(self.clip, self.file, config)
 
-        # TODO: Test if this works with a lossless encoder
         if self.qp_clip:
             runner.inject_qpfile_params(qpfile_clip=self.qp_clip)
 
-        try:  # TODO: Figure out why this throws an error.
+        if self.post_lossless is not None:
+            runner.plp_function = self.post_lossless
+
+        try:  # TODO: Fix this somehow: https://github.com/Ichunjo/vardautomation/issues/106
             runner.run()
         except Exception:
             clean_up = False
