@@ -198,12 +198,26 @@ class EncodeRunner:
         """
         Create a lossless intermediary file.
 
+        You can also set a filterchain function to be run after the lossless encode is done here.
+        Note that this MUST accept a (V)Path for its first param and only outputs a single VideoNode!
+
+        For example:
+
+            .. code-block:: py
+
+                def filter_lossless(path: VPath) -> vs.VideoNode:
+                    clip = lvf.source(path)
+                    return core.sub.TextFile(clip, "PATH/TO/SUBTITLE.ass")
+
+        This can be useful for cases where you may need to make
+        very slight adjustments to the clip after encoding,
+        but you don't want to run through the entire filterchain again.
+        For example, you could use this to create an encode with and without hardsubs.
+
         :param encoder:                 What encoder to use for the lossless encode.
                                         Valid options are ffv1 and nvenc/nvencclossless.
         :param post_filterchain:        Filterchain to perform on the lossless video
                                         before being passed to the regular encoder.
-                                        This is useful for minor changes, as well as creating a version
-                                        with and without hardsubs or something.
         :param enc_overrides:           Overrides for the encoder settings.
         """
         if self.lossless_setup:
