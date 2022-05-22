@@ -31,6 +31,7 @@ from .video import *
 #   PassthroughCutter
 #   QAACEncoder
 #   Qpfile
+#   ScipyCutter
 #   SoxCutter
 #   SplitMode
 #   SubProcessAsync

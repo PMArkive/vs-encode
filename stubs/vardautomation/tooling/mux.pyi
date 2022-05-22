@@ -1,4 +1,5 @@
 import abc
+from ..config import FileInfo
 from ..language import Lang
 from ..types import AnyPath
 from ..vpathlib import CleanupSet, VPath
@@ -63,6 +64,10 @@ class MatroskaFile(_AbstractMatroskaFile):
     def __init__(self, output: AnyPath, tracks: Union[AnyPath, Track, Iterable[Union[AnyPath, Track]], None] = ..., *global_opts: str) -> None: ...
     @property
     def command(self) -> List[str]: ...
+    @classmethod
+    def autotrack(cls, file: FileInfo) -> MatroskaFile: ...
+    @staticmethod
+    def automux(file: FileInfo) -> None: ...
     @overload
     def mux(self, return_workfiles: Literal[True] = ...) -> CleanupSet: ...
     @overload
