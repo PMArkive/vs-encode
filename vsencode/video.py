@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any
 
-import lvsfunc
 import vapoursynth as vs
 from lvsfunc.util import get_prop
 from vardautomation import (FFV1, LosslessEncoder, NVEncCLossless,
-                            VideoEncoder, VideoLanEncoder, logger)
+                            VideoLanEncoder)
 from vsutil import get_depth
 
 from .codecs import X264Custom, X265Custom
@@ -39,7 +38,7 @@ def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_CODEC,
         if not verify_file_exists(settings):
             raise FileNotFoundError(f"Settings file not found at {settings}!")
     else:
-        #VEncSettingsSetup(v_encoder)
+        #  VEncSettingsSetup(v_encoder)
         ...
 
     if isinstance(v_encoder, VideoLanEncoder):
@@ -49,7 +48,7 @@ def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_CODEC,
         match v_encoder:
             case 'x264' | 'h264': return X264Custom(settings, **encoder_settings)
             case 'x265' | 'h265': return X265Custom(settings, **encoder_settings)
-            case _: raise ValueError("Invalid video encoder!")
+            case _: raise NoVideoEncoderError
 
 
 def get_lossless_video_encoder(l_encoder: str | LosslessEncoder | LOSSLESS_VIDEO_ENCODER,

@@ -5,15 +5,9 @@ from __future__ import annotations
 
 import math
 import multiprocessing as mp
-import os
-from functools import partial
-from pathlib import Path
-from typing import Any, List, Sequence
+from typing import List, Sequence
 
-import vardefunc
 from lvsfunc.misc import source
-from lvsfunc.util import get_prop
-from vapoursynth import VideoNode
 from vardautomation import AnyPath, DuplicateFrame
 from vardautomation import FileInfo2
 from vardautomation import Preset, Trim, VPath, VPSIdx
@@ -22,9 +16,8 @@ from .types import FilePath, PresetBackup
 
 __all__: List[str] = [
     'FileInfo',
-    'resolve_ap_trims',
-    'get_channel_layout_str',
     'get_encoder_cores',
+    'verify_file_exists'
 ]
 
 
@@ -37,8 +30,8 @@ def verify_file_exists(path: FilePath) -> bool:
     return VPath(path).exists()
 
 
-def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None=None,
-             /, idx: VPSIdx| None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
+def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = None,
+             /, idx: VPSIdx | None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
              *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
     """
     FileInfo generator using vardautomation's built-in FileInfo2 generator,

@@ -3,15 +3,14 @@ from __future__ import annotations
 import os
 import shutil
 from fractions import Fraction
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, List, Tuple
 
 import vapoursynth as vs
 from bvsfunc.util import AudioProcessor as ap
 from lvsfunc.types import Range
-from vardautomation import (JAPANESE, AudioCutter, AudioEncoder,
-                            AudioExtracter, AudioTrack, Eac3toAudioExtracter,
-                            FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
-                            SoxCutter, VPath, logger)
+from vardautomation import (JAPANESE, AudioTrack, Eac3toAudioExtracter,
+                            FDKAACEncoder, FileInfo2, Lang, Preset,
+                            QAACEncoder, SoxCutter, VPath, logger)
 
 from .exceptions import MissingDependenciesError
 from .types import (BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
@@ -109,7 +108,7 @@ def check_aac_encoders_installed() -> None:
 
 
 def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
-                           all_tracks: bool = False,  codec: str = 'AAC',
+                           all_tracks: bool = False, codec: str = 'AAC',
                            xml_file: str | None = None,
                            lang: Lang = JAPANESE) -> List[AudioTrack]:
     a_tracks: List[AudioTrack] = []

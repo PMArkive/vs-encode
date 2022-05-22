@@ -4,38 +4,29 @@ import copy
 import os
 import shutil
 from fractions import Fraction
-from typing import Any, Dict, Iterable, List, Literal, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
-from lvsfunc import check_variable, get_prop
-from vardautomation import (FFV1, JAPANESE, X264, X265, AnyPath, AudioCutter,
-                            AudioEncoder, AudioExtracter, AudioTrack, Chapter,
-                            ChaptersTrack, Eac3toAudioExtracter, FDKAACEncoder,
-                            FileInfo2, FlacEncoder, Lang, LosslessEncoder,
-                            MatroskaFile, MatroskaXMLChapters, MediaTrack,
-                            NVEncCLossless, OpusEncoder)
-from vardautomation import PassthroughCutter as PassCutter
-from vardautomation import (Patch, PresetBD, QAACEncoder, RunnerConfig,
-                            SelfRunner, Track, VideoLanEncoder, VideoTrack,
-                            VPath, logger)
-from vardautomation.utils import Properties
-from vsutil import get_depth
+from lvsfunc import check_variable
+from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack,
+                            FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
+                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
+                            MediaTrack, OpusEncoder, Patch, QAACEncoder,
+                            RunnerConfig, SelfRunner, VideoLanEncoder,
+                            VideoTrack, VPath, logger)
 
-from .audio import (check_aac_encoders_installed, check_ffmpeg_installed,
-                    check_qaac_installed, get_track_info,
+from .audio import (check_aac_encoders_installed, get_track_info,
                     iterate_ap_audio_files, iterate_cutter, iterate_encoder,
                     iterate_extractors, iterate_tracks, run_ap,
                     set_eafile_properties, set_missing_tracks)
-from .exceptions import (AlreadyInChainError, FrameLengthMismatch,
-                         MissingDependenciesError, NoAudioEncoderError,
-                         NoChaptersError, NoLosslessVideoEncoderError,
+from .exceptions import (AlreadyInChainError, NoLosslessVideoEncoderError,
                          NotEnoughValuesError, NoVideoEncoderError,
                          common_idx_ext, reenc_codecs)
-from .generate import IniSetup, VEncSettingsSetup, XmlGenerator
-from .helpers import get_encoder_cores, verify_file_exists
+from .generate import IniSetup
+from .helpers import verify_file_exists
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
-                    VIDEO_CODEC, AudioTrim, PresetBackup)
+                    VIDEO_CODEC, AudioTrim)
 from .util import get_timecodes_path
 from .video import (finalize_clip, get_lossless_video_encoder,
                     get_video_encoder, validate_qp_clip)
@@ -108,7 +99,6 @@ class EncodeRunner:
     # Audio-related vars
     audio_files: List[str] = []
 
-
     def __init__(self, file: FileInfo2, clip: vs.VideoNode,
                  lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
@@ -127,7 +117,6 @@ class EncodeRunner:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
         self.file.name_file_final = IniSetup().parse_name()
-
 
     def video(self, encoder: VIDEO_CODEC | VideoLanEncoder | bool = 'x265', settings: str | bool | None = None,
               /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
@@ -193,7 +182,6 @@ class EncodeRunner:
         self.video_setup = True
         return self
 
-
     def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
                  /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
                  **enc_overrides: Any) -> "EncodeRunner":
@@ -235,7 +223,7 @@ class EncodeRunner:
         if callable(post_filterchain):
             self.post_lossless = post_filterchain
         elif post_filterchain is not None:
-            logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchian)}! "
+            logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchain)}! "
                          "If you are passing a function, remove the ()'s and try again.")
 
         logger.info(f"Creating an intermediary lossless encode using {encoder}.")
@@ -243,11 +231,11 @@ class EncodeRunner:
         self.lossless_setup = True
         return self
 
-
     def audio(self, encoder: AUDIO_CODEC = 'aac',
               /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = True,
               *, fps: Fraction | float | None = None, custom_trims: AudioTrim | None = None,
               external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
+              cutter_overrides: Dict[str, Any] = {},
               extract_overrides: Dict[str, Any] = {},
               encoder_overrides: Dict[str, Any] = {},
               track_overrides: Dict[str, Any] = {}) -> "EncodeRunner":
@@ -271,7 +259,8 @@ class EncodeRunner:
                                         If int/float, automatically sets it to `fps/1`.
         :param custom_trims             Custom trims for audio trimming.
                                         If None, uses file.trims_or_dfs.
-        :param extract_overrides:       Overrides for Eac3toAudioExtracter's cutting.
+        :param cutter_overrides:        Overrides for SoxCutter's cutting.
+        :param extract_overrides:       Overrides for Eac3toAudioExtracter's extracting.
         :param encoder_overrides:       Overrides for the encoder settings.
         :param track_overrides:         Overrides for the audio track settings.
         """
@@ -279,13 +268,6 @@ class EncodeRunner:
             raise AlreadyInChainError('audio')
 
         logger.success("Checking audio related settings...")
-
-        if use_ap:
-            try:
-                from bvsfunc.util import AudioProcessor as ap
-            except ModuleNotFoundError:
-                raise ModuleNotFoundError("audio: missing dependency 'bvsfunc'. "
-                                          "Please install it at https://github.com/begna112/bvsfunc.")
 
         enc = encoder.lower()
 
@@ -339,6 +321,7 @@ class EncodeRunner:
                 self.file.write_a_src_cut(1)
             else:
                 self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
+                self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
 
             self.a_tracks = iterate_tracks(file_copy, tracks=track_count)
 
@@ -358,7 +341,6 @@ class EncodeRunner:
 
         self.audio_setup = True
         return self
-
 
     def chapters(self, chapter_list: List[Chapter],
                  chapter_offset: int | None = None,
@@ -391,7 +373,6 @@ class EncodeRunner:
 
         self.chapters_setup = True
         return self
-
 
     def mux(self, encoder_credit: str = '', timecodes: str | bool | None = None) -> "EncodeRunner":
         """
@@ -433,7 +414,6 @@ class EncodeRunner:
 
         self.muxing_setup = True
         return self
-
 
     def run(self, clean_up: bool = True, /, order: str = 'video', *, deep_clean: bool = False) -> None:
         """
@@ -478,7 +458,6 @@ class EncodeRunner:
         if clean_up:
             self._perform_cleanup(runner, deep_clean=deep_clean)
 
-
     def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
               /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None,
               deep_clean: bool = False) -> None:
@@ -486,10 +465,11 @@ class EncodeRunner:
         Patching method. This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!
 
-        :ranges:                    Frame ranges that require patching. Expects as a list of tuples or integers (can be mixed).
+        :ranges:                    Frame ranges that require patching.
+                                    Expects as a list of tuplesor integers (can be mixed).
                                     Examples: [(0, 100), (400, 600)]; [50, (100, 200), 500].
         :param clean_up:            Clean up files after the patching is done. Default: True.
-        :param external_file:       File to patch into. This is intended for videos like NCs with only one or two changes
+        :param external_file:       File to patch into. This is intended for videos like NCs with very few changes
                                     so you don't need to encode the entire thing multiple times.
                                     It will copy the given file and rename it to ``FileInfo2.name_file_final``.
                                     If None, performs regular patching on the original encode.
@@ -520,7 +500,6 @@ class EncodeRunner:
 
         if clean_up:
             self._perform_cleanup(runner, deep_clean=deep_clean)
-
 
     def _perform_cleanup(self, runner_object: SelfRunner | Patch, /, *, deep_clean: bool = False) -> None:
         """

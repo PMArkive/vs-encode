@@ -68,6 +68,7 @@ PresetBackup = Preset(
 
 FilePath = Union[str, os.PathLike, Path, VPath]
 
+
 class EncodersEnum(IntEnum):
     """Encoders supported by Vardautomation. Currently broken (oops)."""
     # Video encoders
