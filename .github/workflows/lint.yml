@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements-dev.txt
           pip install .
       - name: Running flake8
-        run: flake8 lvsfunc
+        run: flake8 vsencode
       - name: Running mypy
         if: steps.dependencies.outcome == 'success'
-        run: mypy -p lvsfunc
+        run: mypy -p vsencode
