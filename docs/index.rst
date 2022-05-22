@@ -1,5 +1,5 @@
 vs-encode Documentation
----------------------
+-----------------------
 
 .. warning::
 
@@ -21,15 +21,3 @@ About
 `vs-encode` is a module created to make running encodes
 and handling other tasks delegated to the encoder simpler and easily repeatable.
 This gives you a stable and consistent encoding setup to make your life a lot easier.
-
-
-
-
-.. toctree::
-    :maxdepth: 4
-    :caption: Installation
-
-    installation/install
-    installation/dependencies
-    installation/usage
-
