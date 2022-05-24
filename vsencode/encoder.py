@@ -8,12 +8,12 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack,
-                            FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
-                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
-                            MediaTrack, OpusEncoder, Patch, QAACEncoder,
-                            RunnerConfig, SelfRunner, VideoLanEncoder,
-                            VideoTrack, VPath, logger)
+from vardautomation import (JAPANESE, AnyPath, AudioTrack, Chapter,
+                            ChaptersTrack, FDKAACEncoder, FileInfo2,
+                            FlacEncoder, Lang, LosslessEncoder, MatroskaFile,
+                            MatroskaXMLChapters, MediaTrack, OpusEncoder,
+                            Patch, QAACEncoder, RunnerConfig, SelfRunner,
+                            VideoLanEncoder, VideoTrack, VPath, logger)
 
 from .audio import (check_aac_encoders_installed, get_track_info,
                     iterate_ap_audio_files, iterate_cutter, iterate_encoder,
@@ -147,7 +147,8 @@ class EncodeRunner:
         logger.success("Checking video related settings...")
 
         if zones:
-            zones = dict(sorted(zones.items(), key=lambda item: item[1]))  # type:ignore[return-value, arg-type]
+            # TODO: Add normalisation
+            zones = dict(sorted(zones.items()))  # type:ignore[return-value, arg-type]
 
         if settings is None:
             # TODO: Automatically generate a settings file
@@ -183,7 +184,7 @@ class EncodeRunner:
         return self
 
     def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
-                 /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
+                 /, post_filterchain: Callable[[AnyPath], vs.VideoNode] | None = None,
                  **enc_overrides: Any) -> "EncodeRunner":
         """
         Create a lossless intermediary file.
