@@ -46,7 +46,7 @@ def set_eafile_properties(file_obj: FileInfo2,
         file_obj.clip = external_audio_clip
 
     if use_ap:
-        file_obj.trims_or_dfs = trims  # type:ignore[assignment]
+        file_obj.trims_or_dfs = trims  # type:ignore
 
     return file_obj
 
@@ -54,11 +54,12 @@ def set_eafile_properties(file_obj: FileInfo2,
 def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int] | List[str]]:
     track_channels: List[int] = []
     original_codecs: List[str] = []
+    media_info: MediaInfo
 
     if isinstance(obj, str):
-        media_info: MediaInfo = MediaInfo.parse(obj)  # type:ignore[assignment]
+        media_info = MediaInfo.parse(obj)  # type:ignore[assignment]
     elif isinstance(obj, FileInfo2):
-        media_info: MediaInfo = obj.media_info
+        media_info = obj.media_info
     else:
         raise ValueError("Obj is not a FileInfo2 object or a path!")
 
@@ -74,7 +75,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
 
 def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: AudioTrim | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
-    return ap.video_source(  # type:ignore[no-any-return]
+    return ap.video_source(
         in_file=file_obj.path.to_str(),
         out_file=str(file_obj.a_src_cut),
         trim_list=resolve_ap_trims(trims, file_obj.clip),  # type:ignore[arg-type]
@@ -181,7 +182,7 @@ def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACE
     encoders: List[BUILTIN_AUDIO_ENCODERS] = []
 
     for i in range(tracks):
-        encoders += [encoder(file_obj, track=i, **overrides)]  # type:ignore[index, list-item, call-arg]
+        encoders += [encoder(file_obj, track=i, **overrides)]  # type:ignore[list-item]
 
     return encoders
 
