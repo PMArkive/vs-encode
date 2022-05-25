@@ -71,3 +71,11 @@ def validate_qp_clip(clip: vs.VideoNode, qp_clip: vs.VideoNode) -> vs.VideoNode:
     if len_a != len_b:
         raise FrameLengthMismatch(len_a, len_b)
     return qp_clip
+
+
+def normalize_zones(clip: vs.VideoNode, ranges: Dict[Tuple[int | None, int | None], Dict[str, Any]]
+                    ) -> Dict[Tuple[int, int], Dict[str, Any]]:
+    """
+    Normalizes zones, much like `lvsfunc.normalize_ranges`.
+    """
+    ...
