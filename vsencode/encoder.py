@@ -168,9 +168,7 @@ class EncodeRunner:
             self.qp_clip = validate_qp_clip(self.clip, self.file.clip_cut)
 
         self.v_encoder.prefetch = prefetch or 0
-
-        if self.file.name_clip_output.exists():
-            self.v_encoder.resumable = True
+        self.v_encoder.resumable = True
 
         logger.info(f"Encoding video using {encoder}.")
         logger.info(f"Zones: {zones}")
@@ -223,6 +221,7 @@ class EncodeRunner:
 
         if callable(post_filterchain):
             self.post_lossless = post_filterchain
+            logger.info("Post-lossless function found!")
         elif post_filterchain is not None:
             logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchain)}! "
                          "If you are passing a function, remove the ()'s and try again.")
@@ -392,6 +391,7 @@ class EncodeRunner:
 
         if encoder_credit:
             encoder_credit = f"Original encode by {encoder_credit}"
+            logger.info(f"Credit set in video metadata: \"{encoder_credit}\"...")
 
         # Adding all the tracks
         all_tracks: List[MediaTrack] = [
@@ -404,14 +404,18 @@ class EncodeRunner:
         for track in self.c_tracks:  # type:ignore[assignment]
             all_tracks += [track]
 
+        logger.info(f"Tracks: {all_tracks}")
+
         self.muxer = MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
 
         if isinstance(timecodes, str):
             self.muxer.add_timestamps(timecodes)
+            logger.info(f"Muxing in timecode file at {timecodes}...")
         elif timecodes is None:
             tc_path = get_timecodes_path()
             if tc_path.exists():
                 self.muxer.add_timestamps(get_timecodes_path())
+                logger.info(f"Found timecode file at {tc_path}! Muxing in...")
 
         self.muxing_setup = True
         return self
@@ -426,7 +430,7 @@ class EncodeRunner:
                                 This does not affect anything if AudioProcessor is used.
         :param deep_clean:      Clean all common related project files. Default: False.
         """
-        logger.success("Checking runner related settings...")
+        logger.success("Preparing to run encode...")
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,
@@ -494,6 +498,7 @@ class EncodeRunner:
             output_filename=output_filename
         )
 
+        logger.success("Everything passed checks succesfully! Starting encode...")
         runner.run()
 
         if not verify_file_exists(self.file.name_file_final):
