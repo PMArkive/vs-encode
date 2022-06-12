@@ -39,6 +39,7 @@ def set_eafile_properties(file_obj: FileInfo2,
                           trims: AudioTrim | None = None,
                           use_ap: bool = True) -> FileInfo2:
     file_obj.path = VPath(external_audio_file)
+    file_obj.a_src = VPath(external_audio_file)
     file_obj.path_without_ext = VPath(os.path.splitext(external_audio_file)[0])
     file_obj.work_filename = file_obj.path.stem
 
@@ -67,10 +68,11 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
         if track.track_type == 'Audio':
             track_channels += [track.channel_s]
             original_codecs += [track.format]
+
             if not all_tracks:
                 break
 
-    return (track_channels, original_codecs)
+    return track_channels, original_codecs
 
 
 def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: AudioTrim | None = None,
@@ -112,14 +114,18 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
                            all_tracks: bool = False, codec: str = 'AAC',
                            xml_file: str | None = None,
                            lang: Lang = JAPANESE) -> List[AudioTrack]:
-    a_tracks: List[AudioTrack] = []
+    xml_arg: Tuple[str, str] = ('', '')
 
-    xml_arg: Tuple[str, str] = ()
     # TODO: Multi-track support
     if isinstance(xml_file, str):
         xml_arg = ('--tags', f'0:{str(xml_file)}')
 
-    for i, (track, channels) in enumerate(zip(audio_files, track_channels), 1):
+    if not track_channels:
+        track_channels = [2]
+
+    a_tracks: List[AudioTrack] = []
+
+    for i, (track, channels) in enumerate(zip(audio_files, track_channels), start=1):
         a_tracks += [AudioTrack(VPath(track).format(track_number=i),
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 lang, i, *xml_arg)]

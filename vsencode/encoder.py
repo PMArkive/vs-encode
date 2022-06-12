@@ -182,7 +182,7 @@ class EncodeRunner:
         return self
 
     def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
-                 /, post_filterchain: Callable[[AnyPath], vs.VideoNode] | None = None,
+                 /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
                  **enc_overrides: Any) -> "EncodeRunner":
         """
         Create a lossless intermediary file.
@@ -296,7 +296,7 @@ class EncodeRunner:
                     track_count += 1
             track_count = track_count - 1   # To compensate for the extra track counted
 
-        track_channels, original_codecs = get_track_info(self.file)
+        track_channels, original_codecs = get_track_info(ea_file or file_copy)
 
         if enc == 'passthrough' and any(c in original_codecs for c in reenc_codecs):
             logger.warning("Unsupported audio codecs found in source file! "
