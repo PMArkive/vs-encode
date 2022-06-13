@@ -12,7 +12,8 @@
 
 from vardautomation import VPath
 
-from . import encoder, exceptions, generate, helpers, presets, types, util
+from . import (encoder, exceptions, generate, helpers, presets, templates,
+               types, util)
 from .encoder import *
 from .exceptions import *
 from .generate import *
