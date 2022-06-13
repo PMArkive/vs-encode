@@ -7,14 +7,17 @@ but are recommended to run prior to running Encoder.
 from __future__ import annotations
 
 import os
+import subprocess as sp
 import sys
 from configparser import ConfigParser
+from functools import lru_cache
 from glob import glob
 from typing import Any, Dict, List
 
 from vardautomation import VPath, logger
 
-from .types import valid_file_values
+from .templates.encoders import qaac_template, x264_defaults, x265_defaults
+from .types import LOSSY_ENCODERS_GENERATOR, valid_file_values
 
 __all__: List[str] = [
     'IniSetup'
@@ -24,12 +27,41 @@ __all__: List[str] = [
 caller_name = sys.argv[0]
 
 
-def XmlGenerator() -> None:
-    ...
+def XmlGenerator(directory: str = '.settings') -> None:
+    if not VPath(f'{directory}/tags_aac.xml').exists():
+        try:
+            qaac_version = sp.run(['qaac', '--check'], capture_output=True, text=True, encoding='utf-8')
+            template = qaac_template.format(qaac_version=qaac_version.stderr.splitlines()[0])
+
+            with open(f'{directory}/tags_aac.xml', 'x') as f:
+                f.write(template)
+        except FileNotFoundError:
+            raise FileNotFoundError("XmlGenerator: 'Can't find qaac! Please install qaac and add it to PATH!'")
 
 
-def VEncSettingsSetup() -> None:
-    ...
+def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
+                          directory: str = '.settings') -> None:
+
+    VPath(directory).mkdir(parents=True, exist_ok=True)
+
+    match mode:
+        case 'x264': _generate_settings('x264', directory)
+        case 'x265': _generate_settings('x265', directory)
+        case 'both':
+            _generate_settings('x264', directory)
+            _generate_settings('x265', directory)
+        case _: raise ValueError("VEncSettingsSetup: 'Invalid mode passed!'")
+
+
+def _generate_settings(mode: str = 'x264', directory: str = '.settings') -> None:
+    match mode:
+        case 'x264': settings = x264_defaults
+        case 'x265': settings = x265_defaults
+        case _: raise ValueError("_generate_settings: 'Invalid mode passed!'")
+
+    if not VPath(f'{directory}/{mode}_settings').exists():
+        with open(f'{directory}/{mode}_settings', 'a') as f:
+            f.write(settings)
 
 
 class IniSetup:
@@ -44,8 +76,6 @@ class IniSetup:
     bdmv_dir: str
     reserve_core: str
     show_name: str
-    output_dir: str
-    output_name: str
 
     def __init__(self, custom_name: str | None = None,
                  custom_output_name: str | None = None,
@@ -141,12 +171,33 @@ class IniSetup:
         return VPath(self.output_dir + '/' + os.path.basename(output_name) + '.mkv')
 
 
-def init_project() -> IniSetup:
+@lru_cache
+def init_project(venc_mode: LOSSY_ENCODERS_GENERATOR = 'both',
+                 settings_dir: str | List[str] = '.settings',
+                 generate_settings: bool = True, generate_qaac: bool = True,
+                 ) -> IniSetup:
     """
     Creates basic files used in conjunction with the rest of this package.
+
+    :param venv_mode:           Video encoder mode. Decides what encode settings get generated.
+                                Valid options are 'x264', 'x265', or 'both' (default: 'both').
+    :param settings_dir:        Directory to output the settings to.
+                                Passing a list sets different directories per operation:
+                                ['venc settings dir', 'qaac tags dir'] (default: '.settings').
+    :param generate_settings:   Generate encode settings (default: True).
+    :param generate_qaac:       Generate qaac tags (default: True).
+
+    :return:                    Ini setup object.
     """
     init = IniSetup()
-    VEncSettingsSetup()
-    XmlGenerator()
+
+    if isinstance(settings_dir, str):
+        settings_dir = [settings_dir, settings_dir]
+
+    if generate_settings:
+        VEncSettingsGenerator(venc_mode, settings_dir[0])
+
+    if generate_qaac:
+        XmlGenerator(settings_dir[0])
 
     return init
