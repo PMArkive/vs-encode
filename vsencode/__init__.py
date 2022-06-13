@@ -21,3 +21,8 @@ from .helpers import FileInfo
 from .presets import *
 from .types import *
 from .util import *
+
+# Aliases
+load_video = FileInfo
+src = FileInfo
+source = FileInfo
