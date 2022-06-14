@@ -8,21 +8,21 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (JAPANESE, AnyPath, AudioTrack, Chapter,
-                            ChaptersTrack, FDKAACEncoder, FileInfo2,
-                            FlacEncoder, Lang, LosslessEncoder, MatroskaFile,
-                            MatroskaXMLChapters, MediaTrack, OpusEncoder,
-                            Patch, QAACEncoder, RunnerConfig, SelfRunner,
-                            VideoLanEncoder, VideoTrack, VPath, logger)
+from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack,
+                            FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
+                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
+                            MediaTrack, OpusEncoder, Patch, QAACEncoder,
+                            RunnerConfig, SelfRunner, VideoLanEncoder,
+                            VideoTrack, VPath, logger)
 
 from .audio import (check_aac_encoders_installed, get_track_info,
                     iterate_ap_audio_files, iterate_cutter, iterate_encoder,
                     iterate_extractors, iterate_tracks, run_ap,
                     set_eafile_properties, set_missing_tracks)
 from .exceptions import (AlreadyInChainError, NoLosslessVideoEncoderError,
-                         NotEnoughValuesError, NoVideoEncoderError,
-                         common_idx_ext, reenc_codecs)
-from .generate import IniSetup
+                         NotEnoughValuesError, NotInChainError,
+                         NoVideoEncoderError, common_idx_ext, reenc_codecs)
+from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
@@ -57,7 +57,7 @@ class EncodeRunner:
 
     For arguments, see the individual methods.
 
-    The only REQUIRED steps are `video` and `run`.
+    The only REQUIRED steps are `video` and `run`/`patch`.
 
     :param file:            FileInfo2 object.
     :param clip:            VideoNode to use for the output.
@@ -141,19 +141,24 @@ class EncodeRunner:
         :param prefetch:                Prefetch. Set a low value to limit the number of frames rendered at once.
         :param enc_overrides:           Overrides for the encoder settings.
         """
-        if self.video_setup:
-            raise AlreadyInChainError('video')
-
+        check_in_chain('video', self.video_setup)
         logger.success("Checking video related settings...")
+
+        if not any(encoder.lower() == x for x in VIDEO_CODEC):
+            raise NoVideoEncoderError("Invalid video encoder given!")
 
         if zones:
             # TODO: Add normalisation
             zones = dict(sorted(zones.items()))  # type:ignore[return-value, arg-type]
 
         if settings is None:
-            # TODO: Automatically generate a settings file
-            logger.warning("video: 'No settings file given. Will automatically generate one for you. "
-                           "To disable this behaviour, set `settings=False`.")
+            logger.warning("video: 'No settings file found. "
+                           "We will automatically generate one for you using sane defaults. "
+                           f"To disable this behaviour and use default {encoder} settings, "
+                           "set `settings=False`.")
+            match encoder:
+                case 'x264' | 'h264': VEncSettingsGenerator(encoder)
+                case 'x265' | 'h265': VEncSettingsGenerator(encoder)
 
         self.clip = finalize_clip(self.clip)
 
@@ -162,11 +167,6 @@ class EncodeRunner:
         else:
             raise NoVideoEncoderError
 
-        if isinstance(qp_clip, vs.VideoNode):
-            self.qp_clip = validate_qp_clip(self.clip, qp_clip)
-        elif qp_clip is None:
-            self.qp_clip = validate_qp_clip(self.clip, self.file.clip_cut)
-
         self.v_encoder.prefetch = prefetch or 0
         self.v_encoder.resumable = True
 
@@ -174,8 +174,10 @@ class EncodeRunner:
         logger.info(f"Zones: {zones}")
 
         if isinstance(qp_clip, vs.VideoNode):
+            self.qp_clip = validate_qp_clip(self.clip, qp_clip)
             logger.info("qp_clip set using the given qp clip.")
-        elif qp_clip is not False:
+        elif qp_clip is None:
+            self.qp_clip = validate_qp_clip(self.clip, self.file.clip_cut)
             logger.info("qp_clip set using the original clip cut as qp clip.")
 
         self.video_setup = True
@@ -209,9 +211,7 @@ class EncodeRunner:
                                         before being passed to the regular encoder.
         :param enc_overrides:           Overrides for the encoder settings.
         """
-        if self.lossless_setup:
-            raise AlreadyInChainError('lossless')
-
+        check_in_chain('lossless', self.lossless_setup)
         logger.success("Checking lossless intermediary related settings...")
 
         if isinstance(encoder, (str, LosslessEncoder)):
@@ -238,7 +238,7 @@ class EncodeRunner:
               cutter_overrides: Dict[str, Any] = {},
               extract_overrides: Dict[str, Any] = {},
               encoder_overrides: Dict[str, Any] = {},
-              track_overrides: Dict[str, Any] = {}) -> "EncodeRunner":
+              ) -> "EncodeRunner":
         """
         Basic audio-related setup for the output audio.
 
@@ -264,9 +264,7 @@ class EncodeRunner:
         :param encoder_overrides:       Overrides for the encoder settings.
         :param track_overrides:         Overrides for the audio track settings.
         """
-        if self.audio_setup:
-            raise AlreadyInChainError('audio')
-
+        check_in_chain('audio', self.audio_setup)
         logger.success("Checking audio related settings...")
 
         enc = encoder.lower()
@@ -352,9 +350,7 @@ class EncodeRunner:
         :param chapter_offset:      Frame offset for all chapters.
         :param chapter_names:       Names for every chapter.
         """
-        if self.chapters_setup:
-            raise AlreadyInChainError('chapters')
-
+        check_in_chain('chapters', self.chapters_setup)
         logger.success("Checking chapter related settings...")
 
         assert self.file.chapter
@@ -384,9 +380,7 @@ class EncodeRunner:
                                     This will be included in the video track metadata.
         :param timecodes:           Optional timecodes file. Used for VFR encodes.
         """
-        if self.muxing_setup:
-            raise AlreadyInChainError('mux')
-
+        check_in_chain('mux', self.muxing_setup)
         logger.success("Checking muxing related settings...")
 
         if encoder_credit:
@@ -406,7 +400,7 @@ class EncodeRunner:
 
         logger.info(f"Tracks: {all_tracks}")
 
-        self.muxer = MatroskaFile(self.file.name_file_final, all_tracks, '--ui-language', 'en')
+        self.muxer = MatroskaFile(self.file.name_file_final.absolute(), all_tracks, '--ui-language', 'en')
 
         if isinstance(timecodes, str):
             self.muxer.add_timestamps(timecodes)
@@ -431,6 +425,8 @@ class EncodeRunner:
         :param deep_clean:      Clean all common related project files. Default: False.
         """
         logger.success("Preparing to run encode...")
+
+        check_in_chain('video', self.video_setup)
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,
@@ -482,6 +478,8 @@ class EncodeRunner:
         :param deep_clean:          Clean all common related project files. Default: False.
         """
         logger.success("Checking patching related settings...")
+
+        check_in_chain('video', self.video_setup)
 
         if external_file:
             if os.path.exists(external_file):
@@ -580,3 +578,8 @@ class EncodeRunner:
         if error:
             logger.warning("There were errors found while cleaning. "
                            "Some files may not have been cleaned properly!")
+
+
+def check_in_chain(name: str, var: bool) -> None:
+    if var:
+        raise AlreadyInChainError(name)
