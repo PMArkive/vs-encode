@@ -236,9 +236,16 @@ class EncodeRunner:
         return self
 
     def audio(self, encoder: AUDIO_CODEC = 'aac',
-              /, xml_file: str | List[str] | None = None, all_tracks: bool = False, use_ap: bool = True,
-              *, fps: Fraction | float | None = None, custom_trims: AudioTrim | None = None,
-              external_audio_file: str | None = None, external_audio_clip: vs.VideoNode | None = None,
+              /,
+              xml_file: str | List[str] | None = None,
+              all_tracks: bool = False,
+              use_ap: bool = True,
+              *,
+              fps: Fraction | float | None = None,
+              reorder: List[int] | None = None,
+              custom_trims: AudioTrim | None = None,
+              external_audio_file: str | None = None,
+              external_audio_clip: vs.VideoNode | None = None,
               cutter_overrides: Dict[str, Any] = {},
               extract_overrides: Dict[str, Any] = {},
               encoder_overrides: Dict[str, Any] = {},
@@ -259,6 +266,10 @@ class EncodeRunner:
         :param fps:                     Fraction of the framerate for AudioProcessor's handling.
                                         If None, grabs the fps from the input clip.
                                         If int/float, automatically sets it to `fps/1`.
+        :param reorder:                 Reorder tracks. For example, if you know you have 3 audio tracks
+                                        ordered like [JP, EN, "Commentary"], you can pass [1, 0, 2]
+                                        to reorder them to [EN, JP, Commentary].
+                                        This should also be used to remove specific tracks.
         :param custom_trims             Custom trims for audio trimming.
                                         If None, uses file.trims_or_dfs.
         :param cutter_overrides:        Overrides for SoxCutter's cutting.
@@ -317,7 +328,6 @@ class EncodeRunner:
             self.a_tracks = iterate_ap_audio_files(self.audio_files, track_channels,
                                                    all_tracks=all_tracks, codec='AAC' if is_aac else 'FLAC',
                                                    xml_file=xml_file, lang=self.a_lang)
-            logger.warning(self.a_tracks)
         else:
             if hasattr(self.file, "audios"):
                 self.file.write_a_src_cut(1)
@@ -341,6 +351,15 @@ class EncodeRunner:
                                          "Please see the docstring for valid encoders.'")
 
         del file_copy
+
+        if all_tracks and reorder:
+            if len(reorder) > len(self.a_tracks):
+                reorder = reorder[:len(self.a_tracks)]
+
+            self.a_tracks = [self.a_tracks[i] for i in reorder]
+            logger.warning("Clips reordered! New order: "
+                           f"[{'{n} ({l})'.format(n=track.name, l=track.lang) for track in self.a_tracks}]")
+
 
         self.audio_setup = True
         return self
