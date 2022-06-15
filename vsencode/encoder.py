@@ -11,7 +11,7 @@ from lvsfunc import check_variable
 from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack,
                             FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
                             LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
-                            MediaTrack, OpusEncoder, Patch, QAACEncoder,
+                            MediaTrack, OpusEncoder, PassthroughAudioEncoder, Patch, QAACEncoder,
                             RunnerConfig, SelfRunner, VideoLanEncoder,
                             VideoTrack, VPath, logger)
 
@@ -144,7 +144,7 @@ class EncodeRunner:
         check_in_chain('video', self.video_setup)
         logger.success("Checking video related settings...")
 
-        if not any(encoder.lower() == x for x in VIDEO_CODEC):
+        if not any(encoder.lower() == x for x in ['x264', 'x265', 'h265', 'h264']):
             raise NoVideoEncoderError("Invalid video encoder given!")
 
         if zones:
@@ -221,7 +221,7 @@ class EncodeRunner:
 
         if callable(post_filterchain):
             self.post_lossless = post_filterchain
-            logger.info("Post-lossless function found!")
+            logger.info("Post-lossless function found! Will apply during the encode...")
         elif post_filterchain is not None:
             logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchain)}! "
                          "If you are passing a function, remove the ()'s and try again.")
@@ -247,9 +247,7 @@ class EncodeRunner:
         :param encoder:                 What encoder/setup to use when encoding the audio.
                                         Valid options are: passthrough, aac, opus, fdkaac, flac.
         :param all_tracks:              Whether to mux in all the audio tracks or just the first track.
-                                        This currently only works with AudioProcessor.
                                         If False, muxes in the first track.
-                                        It will ALWAYS grab just the first track when ``use_ap=False``.
         :param use_ap:                  Whether to use bvsfunc's AudioProcessor to process audio.
                                         If False, uses internal vardautomation encoders.
         :param xml_file:                External XML file with audio encoding specifications.
@@ -288,13 +286,14 @@ class EncodeRunner:
                                               external_audio_clip=external_audio_clip,
                                               trims=trims, use_ap=use_ap)
 
-        if all_tracks and ea_file is None:
+        if all_tracks:
+            logger.warning("`all_tracks` enabled! Will process every audio track it can find...")
             for track in file_copy.media_info.tracks:
                 if track.track_type == 'Audio':
                     track_count += 1
             track_count = track_count - 1   # To compensate for the extra track counted
 
-        track_channels, original_codecs = get_track_info(ea_file or file_copy)
+        track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
 
         if enc == 'passthrough' and any(c in original_codecs for c in reenc_codecs):
             logger.warning("Unsupported audio codecs found in source file! "
@@ -314,6 +313,7 @@ class EncodeRunner:
             self.a_tracks = iterate_ap_audio_files(self.audio_files, track_channels,
                                                    all_tracks=all_tracks, codec='AAC' if is_aac else 'FLAC',
                                                    xml_file=xml_file, lang=self.a_lang)
+            logger.warning(self.a_tracks)
         else:
             if hasattr(self.file, "audios"):
                 self.file.write_a_src_cut(1)
@@ -327,7 +327,8 @@ class EncodeRunner:
             sets = encoder_overrides
 
             match enc:
-                case 'passthrough': pass
+                case 'passthrough': self.a_encoders = iterate_encoder(file_copy, PassthroughAudioEncoder,
+                                                                      tracks=track_count, **sets)
                 case 'aac': self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **sets)
                 case 'flac': self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **sets)
                 case 'opus': self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **sets)
@@ -383,6 +384,8 @@ class EncodeRunner:
         check_in_chain('mux', self.muxing_setup)
         logger.success("Checking muxing related settings...")
 
+        check_in_chain('video', self.video_setup, verify=True)
+
         if encoder_credit:
             encoder_credit = f"Original encode by {encoder_credit}"
             logger.info(f"Credit set in video metadata: \"{encoder_credit}\"...")
@@ -426,7 +429,7 @@ class EncodeRunner:
         """
         logger.success("Preparing to run encode...")
 
-        check_in_chain('video', self.video_setup)
+        check_in_chain('video', self.video_setup, verify=True)
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,
@@ -479,7 +482,7 @@ class EncodeRunner:
         """
         logger.success("Checking patching related settings...")
 
-        check_in_chain('video', self.video_setup)
+        check_in_chain('video', self.video_setup, verify=True)
 
         if external_file:
             if os.path.exists(external_file):
@@ -580,6 +583,6 @@ class EncodeRunner:
                            "Some files may not have been cleaned properly!")
 
 
-def check_in_chain(name: str, var: bool) -> None:
-    if var:
+def check_in_chain(name: str, var: bool, verify: bool = False) -> None:
+    if var and verify is False:
         raise AlreadyInChainError(name)

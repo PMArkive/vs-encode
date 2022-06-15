@@ -64,10 +64,16 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     else:
         raise ValueError("Obj is not a FileInfo2 object or a path!")
 
-    for track in media_info.tracks:
+    logger.info("Checking track info...")
+    for i, track in enumerate(media_info.tracks, start=1):
         if track.track_type == 'Audio':
+            channel = track.channel_s
+            format = track.format
+
             track_channels += [track.channel_s]
             original_codecs += [track.format]
+
+            logger.warning(f"{i}: Format: {format} (Channels: {channel})")
 
             if not all_tracks:
                 break
@@ -77,13 +83,17 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
 
 def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: AudioTrim | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
+
+    if 'silent' not in enc_overrides:
+        enc_overrides |= dict(silent=True)
+
     return ap.video_source(
         in_file=file_obj.path.to_str(),
         out_file=str(file_obj.a_src_cut),
         trim_list=resolve_ap_trims(trims, file_obj.clip),  # type:ignore[arg-type]
         trims_framerate=fps or file_obj.clip.fps,
         frames_total=file_obj.clip.num_frames,
-        flac=not is_aac, aac=is_aac, silent=False, **enc_overrides
+        flac=not is_aac, aac=is_aac, **enc_overrides
     )
 
 
@@ -121,7 +131,7 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
         xml_arg = ('--tags', f'0:{str(xml_file)}')
 
     if not track_channels:
-        track_channels = [2]
+        track_channels = [2] * len(audio_files)
 
     a_tracks: List[AudioTrack] = []
 
@@ -129,8 +139,8 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
         a_tracks += [AudioTrack(VPath(track).format(track_number=i),
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 lang, i, *xml_arg)]
-
-        if not all_tracks:
+        logger.warning(f"{i}: Added audio track ({track}, {channels})")
+        if all_tracks is False:
             break
 
     return a_tracks
@@ -262,16 +272,19 @@ def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup,
 
     if use_ap:
         file_obj.a_src_cut = file_obj.name
+        logger.info(f"Set missing track (\"{file_obj.a_src_cut}\" -> \"{file_obj.name}\")...")
     else:
         try:
             assert isinstance(file_obj.a_src_cut, VPath)
         except AssertionError:
             file_obj.a_src_cut = preset.a_src_cut
+            logger.info(f"Set missing track (\"{file_obj.a_src_cut}\" -> \"{preset.a_src_cut}\")...")
 
     try:
         assert isinstance(file_obj.a_enc_cut, VPath)
     except AssertionError:
         file_obj.a_enc_cut = preset.a_enc_cut
+        logger.info(f"Set missing track (\"{file_obj.a_enc_cut}\" -> \"{preset.a_enc_cut}\")...")
 
     return file_obj
 

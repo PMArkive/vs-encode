@@ -29,6 +29,8 @@ caller_name = sys.argv[0]
 
 def XmlGenerator(directory: str = '.settings') -> None:
     if not VPath(f'{directory}/tags_aac.xml').exists():
+        logger.info(f"Generating default QAAC tags xml in {directory}...")
+
         try:
             qaac_version = sp.run(['qaac', '--check'], capture_output=True, text=True, encoding='utf-8')
             template = qaac_template.format(qaac_version=qaac_version.stderr.splitlines()[0])
@@ -54,6 +56,8 @@ def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
 
 
 def _generate_settings(mode: str = 'x264', directory: str = '.settings') -> None:
+    logger.info(f"Generating sane default settings file for {mode} in {directory}...")
+
     match mode:
         case 'x264': settings = x264_defaults
         case 'x265': settings = x265_defaults
