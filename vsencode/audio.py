@@ -13,6 +13,7 @@ from vardautomation import (JAPANESE, AudioTrack, Eac3toAudioExtracter,
                             QAACEncoder, SoxCutter, VPath, logger)
 
 from .exceptions import MissingDependenciesError
+from .templates import language
 from .types import (BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, AudioTrim, PresetBackup)
 
@@ -73,7 +74,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
             track_channels += [track.channel_s]
             original_codecs += [track.format]
 
-            logger.warning(f"{i}: Format: {format} (Channels: {channel})")
+            logger.warning(f"src track {i}: Format: {format} (Channels: {channel})")
 
             if not all_tracks:
                 break
@@ -133,15 +134,20 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
     if not track_channels:
         track_channels = [2] * len(audio_files)
 
-    if len(lang) < len(track_channels):
-        lang = lang.extend[lang[-1] for i in len(track_channels) - len(lang)]
+    # TODO: Fix language
+    # if len(lang) < len(track_channels):
+    #     lang_old = lang
+    #     for i in range(len(track_channels) - len(lang)):
+    #          lang += [language.UNDEFINED]
+    #     logger.warning("Less languages passed than channels available! Extending the final entry."
+    #                    f"\nOld langs: {lang_old}\nnew langs: {lang}")
 
     a_tracks: List[AudioTrack] = []
 
-    for i, (track, channels, t_lang) in enumerate(zip(audio_files, track_channels, lang), start=1):
+    for i, (track, channels) in enumerate(zip(audio_files, track_channels), start=1):
         a_tracks += [AudioTrack(VPath(track).format(track_number=i),
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
-                                t_lang, i, *xml_arg)]
+                                language.UNDEFINED, i, *xml_arg)]  # TODO: Fix language
         logger.warning(f"{i}: Added audio track ({track}, {channels})")
         if all_tracks is False:
             break

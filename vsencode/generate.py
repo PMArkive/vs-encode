@@ -56,14 +56,14 @@ def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
 
 
 def _generate_settings(mode: str = 'x264', directory: str = '.settings') -> None:
-    logger.info(f"Generating sane default settings file for {mode} in {directory}...")
-
-    match mode:
-        case 'x264': settings = x264_defaults
-        case 'x265': settings = x265_defaults
-        case _: raise ValueError("_generate_settings: 'Invalid mode passed!'")
-
     if not VPath(f'{directory}/{mode}_settings').exists():
+        logger.info(f"Generating sane default settings file for {mode} in {directory}...")
+
+        match mode:
+            case 'x264': settings = x264_defaults
+            case 'x265': settings = x265_defaults
+            case _: raise ValueError("_generate_settings: 'Invalid mode passed!'")
+
         with open(f'{directory}/{mode}_settings', 'a') as f:
             f.write(settings)
 

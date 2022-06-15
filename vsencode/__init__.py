@@ -20,6 +20,7 @@ from .exceptions import *
 from .generate import *
 from .helpers import FileInfo
 from .presets import *
+from .templates import *
 from .types import *
 from .util import *
 

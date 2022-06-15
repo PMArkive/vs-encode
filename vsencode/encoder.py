@@ -118,7 +118,8 @@ class EncodeRunner:
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
-        logger.info(f"Languages set — video: {self.v_lang}, audio(s): {self.a_lang}, chapters: {self.c_lang}")
+        # TODO: Add proper lang support before we spam that info
+        # logger.info(f"Languages set — video: {self.v_lang}, audio(s): {[x for x in self.a_lang]}, chapters: {self.c_lang}")
 
         self.file.name_file_final = IniSetup().parse_name()
 
@@ -352,14 +353,25 @@ class EncodeRunner:
 
         del file_copy
 
+        # TODO: Fix lang support
+        # lang_tracks: List[AudioTrack] = []
+
+        # for track, lang in zip(self.a_tracks, self.a_lang):
+        #     track.lang = lang
+        #     lang_tracks += [track]
+
+        # logger.info(f"Setting audio tracks' languages...\nOld: {self.a_tracks}\nNew: {lang_tracks}")
+        # self.a_tracks = lang_tracks
+
         if all_tracks and reorder:
             if len(reorder) > len(self.a_tracks):
                 reorder = reorder[:len(self.a_tracks)]
 
+            old_a_tracks = self.a_tracks
             self.a_tracks = [self.a_tracks[i] for i in reorder]
-            logger.warning("Clips reordered! New order: "
-                           f"[{'{n} ({l})'.format(n=track.name, l=track.lang) for track in self.a_tracks}]")
-
+            logger.warning("Tracks reordered!\n"
+                           f"Old order: {['{n} ({l})'.format(n=track.name, l=track.lang) for track in old_a_tracks]}\n"
+                           f"New order: {['{n} ({l})'.format(n=track.name, l=track.lang) for track in self.a_tracks]}")
 
         self.audio_setup = True
         return self
