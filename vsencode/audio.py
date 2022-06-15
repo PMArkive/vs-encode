@@ -148,7 +148,7 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
         a_tracks += [AudioTrack(VPath(track).format(track_number=i),
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 language.UNDEFINED, i, *xml_arg)]  # TODO: Fix language
-        logger.warning(f"{i}: Added audio track ({track}, {channels})")
+        logger.warning(f"enc track {i}: Added audio track ({track}, {channels})")
         if all_tracks is False:
             break
 
