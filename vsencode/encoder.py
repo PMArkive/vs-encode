@@ -110,11 +110,15 @@ class EncodeRunner:
 
         # TODO: Support multiple languages for different tracks.
         if isinstance(lang, Lang):
-            self.v_lang, self.a_lang, self.c_lang = lang, lang, lang
-        elif len(lang) >= 3:
-            self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1], lang[2]
+            self.v_lang, self.a_lang, self.c_lang = lang, [lang], lang
+        elif len(lang) == 3:
+            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1]], lang[2]
+        elif len(lang) > 3:
+            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1:-2]], lang[-1]
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
+
+        logger.info(f"Languages set — video: {self.v_lang}, audio(s): {self.a_lang}, chapters: {self.c_lang}")
 
         self.file.name_file_final = IniSetup().parse_name()
 
