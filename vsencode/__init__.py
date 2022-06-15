@@ -11,6 +11,7 @@
 # flake8: noqa
 
 from vardautomation import VPath
+from vardautomation.language import *
 
 from . import (encoder, exceptions, generate, helpers, presets, templates,
                types, util)
