@@ -15,7 +15,7 @@ from vardautomation import (JAPANESE, AudioTrack, Eac3toAudioExtracter,
 from .exceptions import MissingDependenciesError
 from .templates import language
 from .types import (BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
-                    BUILTIN_AUDIO_EXTRACTORS, AudioTrim, PresetBackup)
+                    BUILTIN_AUDIO_EXTRACTORS, PresetBackup)
 
 try:
     from pymediainfo import MediaInfo
@@ -37,7 +37,7 @@ def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> L
 def set_eafile_properties(file_obj: FileInfo2,
                           external_audio_file: str,
                           external_audio_clip: vs.VideoNode | None = None,
-                          trims: AudioTrim | None = None,
+                          trims: List[int] | None = None,
                           use_ap: bool = True) -> FileInfo2:
     file_obj.path = VPath(external_audio_file)
     file_obj.a_src = VPath(external_audio_file)
@@ -82,7 +82,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     return track_channels, original_codecs
 
 
-def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: AudioTrim | None = None,
+def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
 
     if 'silent' not in enc_overrides:

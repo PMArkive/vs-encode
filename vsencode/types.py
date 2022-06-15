@@ -16,7 +16,7 @@ from vardautomation import (DuplicateFrame, Eac3toAudioExtracter, EztrimCutter,
 from vardautomation.tooling import ScipyCutter
 
 __all__: List[str] = [
-    'AUDIO_CODEC', 'AudioTrim', 'BUILTIN_AUDIO_ENCODERS', 'EncodersEnum',
+    'AUDIO_CODEC', 'BUILTIN_AUDIO_ENCODERS', 'EncodersEnum',
     'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC'
 ]
 
@@ -46,15 +46,6 @@ LOSSY_ENCODERS_GENERATOR = Literal['x264', 'x265', 'both']
 BUILTIN_AUDIO_CUTTERS = Union[Type[ScipyCutter], Type[SoxCutter], Type[EztrimCutter], Type[PassthroughCutter]]
 BUILTIN_AUDIO_ENCODERS = Union[Type[OpusEncoder], Type[FDKAACEncoder], Type[FlacEncoder], Type[QAACEncoder]]
 BUILTIN_AUDIO_EXTRACTORS = Union[Type[MKVAudioExtracter], Type[Eac3toAudioExtracter], Type[FFmpegAudioExtracter]]
-
-
-AudioTrim = Union[
-    List[int | None],
-    List[List[int | None]],
-    List[Union[Tuple[int | None, int | None], DuplicateFrame]],
-    Tuple[int | None, int | None],
-    None
-]
 
 
 PresetBackup = Preset(

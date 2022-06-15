@@ -26,7 +26,7 @@ from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
 from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
                     BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
-                    VIDEO_CODEC, AudioTrim)
+                    VIDEO_CODEC)
 from .util import get_timecodes_path
 from .video import (finalize_clip, get_lossless_video_encoder,
                     get_video_encoder, validate_qp_clip)
@@ -244,7 +244,7 @@ class EncodeRunner:
               *,
               fps: Fraction | float | None = None,
               reorder: List[int] | None = None,
-              custom_trims: AudioTrim | None = None,
+              custom_trims: List[int] | None = None,
               external_audio_file: str | None = None,
               external_audio_clip: vs.VideoNode | None = None,
               cutter_overrides: Dict[str, Any] = {},
@@ -271,8 +271,9 @@ class EncodeRunner:
                                         ordered like [JP, EN, "Commentary"], you can pass [1, 0, 2]
                                         to reorder them to [EN, JP, Commentary].
                                         This should also be used to remove specific tracks.
-        :param custom_trims             Custom trims for audio trimming.
-                                        If None, uses file.trims_or_dfs.
+        :param custom_trims             Custom trims for audio trimming. If None, uses file.trims_or_dfs.
+                                        The custom trims are relative to your ``trims_or_dfs``,
+                                        so if you're trimming, get the trims from your filterchain.
         :param cutter_overrides:        Overrides for SoxCutter's cutting.
         :param extract_overrides:       Overrides for Eac3toAudioExtracter's extracting.
         :param encoder_overrides:       Overrides for the encoder settings.
@@ -289,6 +290,12 @@ class EncodeRunner:
         track_count: int = 1
 
         ea_file = external_audio_file
+
+        if custom_trims is not None:
+            og_trims = list(self.file.trims_or_dfs)  # In case multiple trims were passed
+            trim_s, trim_e = og_trims[0][0], og_trims[-1][-1]
+            custom_trims = (trim_s + custom_trim[0], trim_e + custom_trim[-1])
+
         trims = custom_trims or self.file.trims_or_dfs
 
         self.file = set_missing_tracks(self.file, use_ap=use_ap)
