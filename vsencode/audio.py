@@ -152,7 +152,7 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 language.UNDEFINED, i, *xml_arg)]  # TODO: Fix language
         logger.warning(f"{audio_files[i-1]}: Added audio track ({track}, {channels})")
-        if all_tracks is False:
+        if not all_tracks:
             break
 
     return a_tracks
@@ -265,12 +265,7 @@ def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None 
     audio_tracks: List[AudioTrack] = []
 
     for i in range(tracks):
-        audio_tracks += [AudioTrack(
-            file_obj.a_enc_cut.format(track_number=i),
-            codecs[i],
-            lang,
-            i
-        )]
+        audio_tracks += [AudioTrack(file_obj.a_enc_cut.format(track_number=i), codecs[i], lang, i)]
 
     return audio_tracks
 

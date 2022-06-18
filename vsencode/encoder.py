@@ -109,7 +109,7 @@ class EncodeRunner:
         elif len(lang) == 3:
             self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1]], lang[2]
         elif len(lang) > 3:
-            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1:-2]], lang[-1]
+            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1:-1]], lang[-1]
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
@@ -284,7 +284,12 @@ class EncodeRunner:
         elif enc == 'passthrough':
             use_ap = False
 
-        track_count: int = 1
+        track_count: int = 0
+
+        audio_langs = self.a_lang[0]
+
+        if len(audio_langs) < len(self.file.audios):
+            audio_langs += [audio_langs[-1]] * (len(self.file.audios) - len(audio_langs))
 
         ea_file = external_audio_file
 
@@ -308,12 +313,11 @@ class EncodeRunner:
 
         if all_tracks:
             try:
-                track_count = len(file_copy.audios)
+                track_count = len(file_copy.audios) - 1
             except AttributeError:
                 for track in file_copy.media_info.tracks:
                     if track.track_type == 'Audio':
                         track_count += 1
-                track_count = track_count - 1   # To compensate for the extra track counted
 
         track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
 
@@ -338,19 +342,18 @@ class EncodeRunner:
         else:
             if hasattr(self.file, "audios"):
                 for i, _ in enumerate(file_copy.audios):
-                    try:
+                    if not VPath(file_copy.a_src_cut.to_str().format(track_number=i)).exists():
                         file_copy.write_a_src_cut(index=i)
-                    except:  # WHY CAN'T I CATCH THESE ERRORS AAAAAAAAH
-                        pass
 
-                    if all_tracks:
+                    self.a_tracks += [AudioTrack(file_copy.a_enc_cut.format(track_number=i),
+                                                 original_codecs[i], audio_langs[i], i)]
+
+                    if not all_tracks:
                         break
-
             else:
                 self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
                 self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
-
-            self.a_tracks = iterate_tracks(file_copy, tracks=track_count)
+                self.a_tracks = iterate_tracks(file_copy, track_count, None, original_codecs)
 
             # Purely so we can get >120 chars
             sets = encoder_overrides
@@ -378,14 +381,14 @@ class EncodeRunner:
         # self.a_tracks = lang_tracks
 
         if all_tracks and reorder:
+            logger.info("Reordering tracks...")
             if len(reorder) > len(self.a_tracks):
                 reorder = reorder[:len(self.a_tracks)]
 
             old_a_tracks = self.a_tracks
             self.a_tracks = [self.a_tracks[i] for i in reorder]
-            logger.warning("Tracks reordered!\n"
-                           f"Old order: {['{n} ({l})'.format(n=track.name, l=track.lang) for track in old_a_tracks]}\n"
-                           f"New order: {['{n} ({l})'.format(n=track.name, l=track.lang) for track in self.a_tracks]}")
+            logger.warning(f"Old order: {['{i}: {n} ({l})'.format(i=i, n=tr.name, l=tr.lang.iso639) for i, tr in enumerate(old_a_tracks)]}\n"  # noqa
+                           f"New order: {['{i}: {n} ({l})'.format(i=i, n=tr.name, l=tr.lang.iso639) for i, tr in enumerate(self.a_tracks)]}")  # noqa
 
         self.audio_setup = True
         return self
@@ -450,8 +453,6 @@ class EncodeRunner:
         for track in self.c_tracks:  # type:ignore[assignment]
             all_tracks += [track]
 
-        logger.info(f"Tracks: {all_tracks}")
-
         self.muxer = MatroskaFile(self.file.name_file_final.absolute(), all_tracks, '--ui-language', 'en')
 
         if isinstance(timecodes, str):
@@ -466,7 +467,7 @@ class EncodeRunner:
         self.muxing_setup = True
         return self
 
-    def run(self, clean_up: bool = True, /, order: str = 'video', *, deep_clean: bool = False) -> None:
+    def run(self, /, clean_up: bool = True, order: str = 'video', *, deep_clean: bool = False) -> None:
         """
         Final runner method. This should be used AFTER setting up all the other details.
 
