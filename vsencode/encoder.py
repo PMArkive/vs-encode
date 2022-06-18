@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import os
 import shutil
-import subprocess
 from fractions import Fraction
 from typing import Any, Callable, Dict, List, Sequence, Tuple
 
@@ -286,7 +285,13 @@ class EncodeRunner:
 
         track_count: int = 0
 
-        audio_langs = self.a_lang[0]
+        if isinstance(self.a_lang, list):
+            try:
+                audio_langs = list(self.a_lang[0])
+            except TypeError:
+                audio_langs = list(self.a_lang)
+        else:
+            raise ValueError("Some kind of error occured with the audio langs.")
 
         if len(audio_langs) < len(self.file.audios):
             audio_langs += [audio_langs[-1]] * (len(self.file.audios) - len(audio_langs))
@@ -295,8 +300,10 @@ class EncodeRunner:
 
         if custom_trims is not None:
             og_trims = list(self.file.trims_or_dfs)  # In case multiple trims were passed
-            trim_s, trim_e = og_trims[0][0], og_trims[-1][-1]
-            custom_trims = (trim_s + custom_trim[0], trim_e + custom_trim[-1])
+            custom_trims = list(custom_trims)
+
+            trim_s, trim_e = og_trims[0], og_trims[-1]
+            custom_trims = (trim_s + custom_trims[0], trim_e + custom_trims[-1])
 
         trims = custom_trims or self.file.trims_or_dfs
 
