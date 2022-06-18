@@ -3,33 +3,28 @@ from __future__ import annotations
 import copy
 import os
 import shutil
+import subprocess
 from fractions import Fraction
 from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack,
-                            FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
-                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters,
-                            MediaTrack, OpusEncoder, PassthroughAudioEncoder, Patch, QAACEncoder,
-                            RunnerConfig, SelfRunner, VideoLanEncoder,
+from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
+                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder,
+                            PassthroughAudioEncoder, Patch, QAACEncoder, RunnerConfig, SelfRunner, VideoLanEncoder,
                             VideoTrack, VPath, logger)
 
-from .audio import (check_aac_encoders_installed, get_track_info,
-                    iterate_ap_audio_files, iterate_cutter, iterate_encoder,
-                    iterate_extractors, iterate_tracks, run_ap,
-                    set_eafile_properties, set_missing_tracks)
-from .exceptions import (AlreadyInChainError, NoLosslessVideoEncoderError,
-                         NotEnoughValuesError, NotInChainError,
-                         NoVideoEncoderError, common_idx_ext, reenc_codecs)
+from .audio import (check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter,
+                    iterate_encoder, iterate_extractors, iterate_tracks, run_ap, set_eafile_properties,
+                    set_missing_tracks)
+from .exceptions import (AlreadyInChainError, NoLosslessVideoEncoderError, NotEnoughValuesError, NoVideoEncoderError,
+                         common_idx_ext, reenc_codecs)
 from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
-from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
-                    BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
-                    VIDEO_CODEC)
+from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS,
+                    LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC)
 from .util import get_timecodes_path
-from .video import (finalize_clip, get_lossless_video_encoder,
-                    get_video_encoder, validate_qp_clip)
+from .video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 
 __all__: List[str] = [
     'EncodeRunner'
@@ -286,6 +281,8 @@ class EncodeRunner:
 
         if enc == 'aac':
             check_aac_encoders_installed()
+        elif enc == 'passthrough':
+            use_ap = False
 
         track_count: int = 1
 
@@ -310,11 +307,13 @@ class EncodeRunner:
                                               trims=trims, use_ap=use_ap)
 
         if all_tracks:
-            logger.warning("`all_tracks` enabled! Will process every audio track it can find...")
-            for track in file_copy.media_info.tracks:
-                if track.track_type == 'Audio':
-                    track_count += 1
-            track_count = track_count - 1   # To compensate for the extra track counted
+            try:
+                track_count = len(file_copy.audios)
+            except AttributeError:
+                for track in file_copy.media_info.tracks:
+                    if track.track_type == 'Audio':
+                        track_count += 1
+                track_count = track_count - 1   # To compensate for the extra track counted
 
         track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
 
@@ -338,7 +337,15 @@ class EncodeRunner:
                                                    xml_file=xml_file, lang=self.a_lang)
         else:
             if hasattr(self.file, "audios"):
-                self.file.write_a_src_cut(1)
+                for i, _ in enumerate(file_copy.audios):
+                    try:
+                        file_copy.write_a_src_cut(index=i)
+                    except:  # WHY CAN'T I CATCH THESE ERRORS AAAAAAAAH
+                        pass
+
+                    if all_tracks:
+                        break
+
             else:
                 self.a_extracters = iterate_extractors(file_copy, tracks=track_count, **extract_overrides)
                 self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)

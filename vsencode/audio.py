@@ -74,7 +74,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
             track_channels += [track.channel_s]
             original_codecs += [track.format]
 
-            logger.warning(f"src track {i}: Format: {format} (Channels: {channel})")
+            logger.warning(f"{obj.path} track {i}: {format} (Channels: {channel})")
 
             if not all_tracks:
                 break
@@ -86,7 +86,7 @@ def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = N
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
 
     if 'silent' not in enc_overrides:
-        enc_overrides |= dict(silent=True)
+        enc_overrides |= dict(silent=False)
 
     return ap.video_source(
         in_file=file_obj.path.to_str(),
@@ -99,7 +99,10 @@ def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = N
 
 
 def check_qaac_installed() -> bool:
-    return shutil.which('qaac') is not None
+    b32 = shutil.which('qaac') is not None
+    b64 = shutil.which('qaac64') is not None
+
+    return not all(v is None for v in [b32, b64])
 
 
 def check_ffmpeg_installed() -> bool:
@@ -148,7 +151,7 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
         a_tracks += [AudioTrack(VPath(track).format(track_number=i),
                                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                                 language.UNDEFINED, i, *xml_arg)]  # TODO: Fix language
-        logger.warning(f"enc track {i}: Added audio track ({track}, {channels})")
+        logger.warning(f"{audio_files[i-1]}: Added audio track ({track}, {channels})")
         if all_tracks is False:
             break
 
@@ -280,20 +283,23 @@ def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup,
         file_obj.a_src = preset.a_src
 
     if use_ap:
-        file_obj.a_src_cut = file_obj.name
-        logger.info(f"Set missing track (\"{file_obj.a_src_cut}\" -> \"{file_obj.name}\")...")
+        try:
+            assert file_obj.a_src_cut == file_obj.name
+        except AssertionError:
+            file_obj.a_src_cut = file_obj.name
+            logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src_cut}\" -> \"{file_obj.name}\")...")
     else:
         try:
             assert isinstance(file_obj.a_src_cut, VPath)
         except AssertionError:
             file_obj.a_src_cut = preset.a_src_cut
-            logger.info(f"Set missing track (\"{file_obj.a_src_cut}\" -> \"{preset.a_src_cut}\")...")
+            logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src_cut}\" -> \"{preset.a_src_cut}\")...")
 
     try:
         assert isinstance(file_obj.a_enc_cut, VPath)
     except AssertionError:
         file_obj.a_enc_cut = preset.a_enc_cut
-        logger.info(f"Set missing track (\"{file_obj.a_enc_cut}\" -> \"{preset.a_enc_cut}\")...")
+        logger.info(f"Set missing track a_enc_cut (\"{file_obj.a_enc_cut}\" -> \"{preset.a_enc_cut}\")...")
 
     return file_obj
 
