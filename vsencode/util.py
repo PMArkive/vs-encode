@@ -3,6 +3,7 @@ Useful utility functions for encoders.
 """
 from __future__ import annotations
 
+import sys
 import math
 import multiprocessing as mp
 import os
@@ -11,7 +12,6 @@ from pathlib import Path
 from typing import Iterable, List
 
 import vapoursynth as vs
-from appdirs import AppDirs
 from vardautomation import VPath
 from vardautomation import get_vs_core as _get_vs_core
 
@@ -39,7 +39,25 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
                         Default: '.shaders'
     """
     in_cwd = Path(os.path.join(os.getcwd(), filename))
-    mpv_dir = Path(AppDirs().user_data_dir).parents[0] / f"Roaming/mpv/shaders/{filename}"
+
+    if sys.platform == "win32":
+        import ctypes
+
+        buf = ctypes.create_unicode_buffer(1024)
+        ctypes.windll.shell32.SHGetFolderPathW(None, 28, None, 0, buf)
+
+        if any([ord(c) > 255 for c in buf]):
+            buf2 = ctypes.create_unicode_buffer(1024)
+            if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
+                buf = buf2
+
+        user_data_dir = os.path.normpath(buf.value)
+    elif sys.platform == 'darwin':
+        user_data_dir = os.path.expanduser('~/Library/Application Support/')
+    else:
+        user_data_dir = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
+
+    mpv_dir = Path(user_data_dir).parents[0] / f"Roaming/mpv/shaders/{filename}"
 
     if in_cwd.is_file():
         return str(in_cwd)
