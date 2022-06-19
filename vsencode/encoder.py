@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__: List[str] = ['EncodeRunner']
+
 import os
 import shutil
 from copy import copy as shallow_copy
@@ -14,24 +16,23 @@ from vardautomation import (
     PassthroughAudioEncoder, QAACEncoder, RunnerConfig, SelfRunner, Track, Trim, VideoLanEncoder, VideoTrack, VPath,
     logger, patch
 )
+from vardefunc.types import Range
 
 from .audio import (
     check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter, iterate_encoder,
     iterate_extractors, iterate_tracks, run_ap, set_eafile_properties, set_missing_tracks
 )
-from .exceptions import (
-    AlreadyInChainError, NoLosslessVideoEncoderError, NotEnoughValuesError, NoVideoEncoderError, common_idx_ext,
-    reenc_codecs
-)
+from .exceptions import AlreadyInChainError, NoLosslessVideoEncoderError, NotEnoughValuesError, NoVideoEncoderError
 from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
 from .types import AUDIO_CODEC, LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 from .util import get_timecodes_path
 from .video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 
-__all__: List[str] = [
-    'EncodeRunner'
-]
+common_idx_ext: List[str] = ['lwi', 'ffindex']
+
+# These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
+reenc_codecs: List[str] = ['AC-3', 'EAC-3']
 
 
 class EncodeRunner:
@@ -57,17 +58,17 @@ class EncodeRunner:
 
     The only REQUIRED steps are `video` and `run`/`patch`.
 
-    :param file:            FileInfo2 object.
-    :param clip:            VideoNode to use for the output.
-                            This should be the filtered clip, or in other words,
-                            the clip you want to encode as usual.
-    :param lang:            Languages for every track.
-                            If given a list, you can set individual languages per track.
-                            The first will always be the language of the video track.
-                            It's best to set this to your source's region.
-                            The second one is used for all Audio tracks.
-                            The third one will be used for chapters.
-                            If None, assumes Japanese for all tracks.
+    :param file:        FileInfo2 object.
+    :param clip:        VideoNode to use for the output.
+                        This should be the filtered clip, or in other words,
+                        the clip you want to encode as usual.
+    :param lang:        Languages for every track.
+                        If given a list, you can set individual languages per track.
+                        The first will always be the language of the video track.
+                        It's best to set this to your source's region.
+                        The second one is used for all Audio tracks.
+                        The third one will be used for chapters.
+                        If None, assumes Japanese for all tracks.
     """
     # init vars
     file: FileInfo2
@@ -97,11 +98,10 @@ class EncodeRunner:
     # Audio-related vars
     audio_files: List[str] = []
 
-    def __init__(self, file: FileInfo2, clip: vs.VideoNode,
-                 lang: Lang | List[Lang] = JAPANESE) -> None:
+    def __init__(self, file: FileInfo2, clip: vs.VideoNode, lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
 
-        check_variable(clip, "EncodeRunner")
+        check_variable(clip, 'EncodeRunner')
 
         self.file = file
         self.clip = clip
@@ -123,28 +123,30 @@ class EncodeRunner:
 
         self.file.name_file_final = IniSetup().parse_name()
 
-    def video(self, encoder: VIDEO_CODEC = 'x265', settings: str | bool | None = None,
-              /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-              *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
-              **enc_overrides: Any) -> "EncodeRunner":
+    def video(
+        self, encoder: VIDEO_CODEC = 'x265', settings: str | bool | None = None,
+        /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
+        *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
+        **enc_overrides: Any
+    ) -> EncodeRunner:
         """
         Basic video-related setup for the output video.
 
-        :param encoder:                 What encoder to use when encoding the video.
-                                        Valid options are: x264, x265, a custom VideoLanEncoder object,
-                                        or False to not encode a video at all.
-        :param settings:                Path to settings file.
-                                        If None, will autogenerate a settings file with sane defaults.
-                                        If False, will use default x264/x265 settings.
-        :param zones:                   Zones for x264/x265. Expected in the following format:
-                                        {(100, 200): {'crf': 13}, (500, 600): {'crf': 12}}.
-                                        Zones will be sorted prior to getting passed to the encoder.
-        :param qp_clip:                 Optional qp clip for the qp file creation.
-                                        This allows for more consistent lossless trimming,
-                                        and will also make your timer's life way easier.
-                                        If None, uses base cut clip. If False, disables qp_clip injection.
-        :param prefetch:                Prefetch. Set a low value to limit the number of frames rendered at once.
-        :param enc_overrides:           Overrides for the encoder settings.
+        :param encoder:             What encoder to use when encoding the video.
+                                    Valid options are: x264, x265, a custom VideoLanEncoder object,
+                                    or False to not encode a video at all.
+        :param settings:            Path to settings file.
+                                    If None, will autogenerate a settings file with sane defaults.
+                                    If False, will use default x264/x265 settings.
+        :param zones:               Zones for x264/x265. Expected in the following format:
+                                    {(100, 200): {'crf': 13}, (500, 600): {'crf': 12}}.
+                                    Zones will be sorted prior to getting passed to the encoder.
+        :param qp_clip:             Optional qp clip for the qp file creation.
+                                    This allows for more consistent lossless trimming,
+                                    and will also make your timer's life way easier.
+                                    If None, uses base cut clip. If False, disables qp_clip injection.
+        :param prefetch:            Prefetch. Set a low value to limit the number of frames rendered at once.
+        :param enc_overrides:       Overrides for the encoder settings.
         """
         check_in_chain('video', self.video_setup)
         logger.success("Checking video related settings...")
@@ -157,10 +159,11 @@ class EncodeRunner:
             zones = dict(sorted(zones.items()))
 
         if settings is None:
-            logger.warning("video: 'No settings file found. "
-                           "We will automatically generate one for you using sane defaults. "
-                           f"To disable this behaviour and use default {encoder} settings, "
-                           "set `settings=False`.")
+            logger.warning(
+                "video: No settings file found. We will automatically generate one for you using sane defaults. "
+                f"To disable this behaviour and use default {encoder} settings, set `settings=False`."
+            )
+
             match encoder:
                 case 'x264' | 'h264': VEncSettingsGenerator(encoder)
                 case 'x265' | 'h265': VEncSettingsGenerator(encoder)
@@ -186,11 +189,14 @@ class EncodeRunner:
             logger.info("qp_clip set using the original clip cut as qp clip.")
 
         self.video_setup = True
+
         return self
 
-    def lossless(self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
-                 /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
-                 **enc_overrides: Any) -> "EncodeRunner":
+    def lossless(
+        self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
+        /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
+        **enc_overrides: Any
+    ) -> EncodeRunner:
         """
         Create a lossless intermediary file.
 
@@ -228,29 +234,28 @@ class EncodeRunner:
             self.post_lossless = post_filterchain
             logger.info("Post-lossless function found! Will apply during the encode...")
         elif post_filterchain is not None:
-            logger.error(f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchain)}! "
-                         "If you are passing a function, remove the ()'s and try again.")
+            logger.error(
+                f"You must pass a callable function to `post_filterchain`! Not a {type(post_filterchain)}! "
+                "If you are passing a function, remove the ()'s and try again."
+            )
 
         logger.info(f"Creating an intermediary lossless encode using {encoder}.")
 
         self.lossless_setup = True
+
         return self
 
-    def audio(self, encoder: AUDIO_CODEC = 'aac',
-              /,
-              xml_file: str | None = None,
-              all_tracks: bool = False,
-              use_ap: bool = True,
-              *,
-              fps: Fraction | float | None = None,
-              reorder: List[int] | None = None,
-              custom_trims: List[Trim | DuplicateFrame] | Trim | None = None,
-              external_audio_file: str | None = None,
-              external_audio_clip: vs.VideoNode | None = None,
-              cutter_overrides: Dict[str, Any] = {},
-              extract_overrides: Dict[str, Any] = {},
-              encoder_overrides: Dict[str, Any] = {},
-              ) -> "EncodeRunner":
+    def audio(
+        self, encoder: AUDIO_CODEC = 'aac',
+        /, xml_file: str | None = None, all_tracks: bool = False, use_ap: bool = True,
+        *, fps: Fraction | float | None = None, reorder: List[int] | None = None,
+        custom_trims: List[Trim | DuplicateFrame] | Trim | None = None,
+        external_audio_file: str | None = None,
+        external_audio_clip: vs.VideoNode | None = None,
+        cutter_overrides: Dict[str, Any] = {},
+        extract_overrides: Dict[str, Any] = {},
+        encoder_overrides: Dict[str, Any] = {},
+    ) -> EncodeRunner:
         """
         Basic audio-related setup for the output audio.
 
@@ -302,6 +307,10 @@ class EncodeRunner:
         ea_file = external_audio_file
 
         trims = custom_trims or self.file.trims_or_dfs or []
+        trims_ap = [
+            (trim, trim) if isinstance(trim, int) else trim
+            for trim in trims if trim and not isinstance(trim, DuplicateFrame)
+        ]
 
         self.file = set_missing_tracks(self.file, use_ap=use_ap)
         file_copy = shallow_copy(self.file)
@@ -310,9 +319,7 @@ class EncodeRunner:
             fps = Fraction(f'{fps}/1')
 
         if ea_file:
-            file_copy = set_eafile_properties(file_copy, ea_file,
-                                              external_audio_clip=external_audio_clip,
-                                              trims=trims, use_ap=use_ap)
+            file_copy = set_eafile_properties(file_copy, ea_file, external_audio_clip, trims, use_ap)
 
         if all_tracks:
             try:
@@ -325,9 +332,11 @@ class EncodeRunner:
         track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
 
         if enc == 'passthrough' and any(c in original_codecs for c in reenc_codecs):
-            logger.warning("Unsupported audio codecs found in source file! "
-                           "Will be automatically set to encode using FLAC instead.\n"
-                           f"The following codecs are unsupported: {reenc_codecs}")
+            logger.warning(
+                "Unsupported audio codecs found in source file! "
+                "Will be automatically set to encode using FLAC instead.\n"
+                f"The following codecs are unsupported: {reenc_codecs}"
+            )
             enc = 'flac'
 
         if enc in ('aac', 'flac') and use_ap:
@@ -338,10 +347,10 @@ class EncodeRunner:
             else:
                 logger.info("Audio codec: FLAC (FLAC through AudioProcessor)")
 
-            self.audio_files = run_ap(file_copy, is_aac, trims, fps, **encoder_overrides)
+            self.audio_files = run_ap(file_copy, is_aac, trims_ap, fps, **encoder_overrides)  # type: ignore
             self.a_tracks = iterate_ap_audio_files(
-                self.audio_files, track_channels, all_tracks=all_tracks,
-                codec='AAC' if is_aac else 'FLAC', xml_file=xml_file, lang=self.a_lang
+                self.audio_files, track_channels, all_tracks,
+                'AAC' if is_aac else 'FLAC', xml_file, self.a_lang
             )
         else:
             if hasattr(self.file, "audios"):
@@ -408,11 +417,12 @@ class EncodeRunner:
             )
 
         self.audio_setup = True
+
         return self
 
-    def chapters(self, chapter_list: List[Chapter],
-                 chapter_offset: int | None = None,
-                 chapter_names: Sequence[str] | None = None) -> "EncodeRunner":
+    def chapters(
+        self, chapter_list: List[Chapter], chapter_offset: int | None = None, chapter_names: Sequence[str] | None = None
+    ) -> EncodeRunner:
         """
         Basic chapter-related setup for the output chapters.
 
@@ -438,9 +448,10 @@ class EncodeRunner:
         self.c_tracks += [ChaptersTrack(chapxml.chapter_file, self.c_lang)]
 
         self.chapters_setup = True
+
         return self
 
-    def mux(self, encoder_credit: str = '', timecodes: str | bool | None = None) -> "EncodeRunner":
+    def mux(self, encoder_credit: str = '', timecodes: str | bool | None = None) -> EncodeRunner:
         """
         Basic muxing-related setup for the final muxer.
         This will always output an mkv file.
@@ -461,8 +472,7 @@ class EncodeRunner:
 
         # Adding all the tracks
         all_tracks: List[Track] = [
-            VideoTrack(self.file.name_clip_output, encoder_credit, self.v_lang),
-            *self.a_tracks, *self.c_tracks
+            VideoTrack(self.file.name_clip_output, encoder_credit, self.v_lang), *self.a_tracks, *self.c_tracks
         ]
 
         self.muxer = MatroskaFile(self.file.name_file_final.absolute(), all_tracks, '--ui-language', 'en')
@@ -477,6 +487,7 @@ class EncodeRunner:
                 logger.info(f"Found timecode file at {tc_path}! Muxing in...")
 
         self.muxing_setup = True
+
         return self
 
     def run(self, /, clean_up: bool = True, order: str = 'video', *, deep_clean: bool = False) -> None:
@@ -512,7 +523,8 @@ class EncodeRunner:
         if self.post_lossless is not None:
             runner.plp_function = self.post_lossless
 
-        try:  # TODO: Fix this somehow: https://github.com/Ichunjo/vardautomation/issues/106
+        # TODO: Fix this somehow: https://github.com/Ichunjo/vardautomation/issues/106
+        try:
             runner.run()
         except Exception:
             clean_up = False
@@ -524,8 +536,10 @@ class EncodeRunner:
         if clean_up:
             self._perform_cleanup(runner, deep_clean=deep_clean)
 
-    def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
-              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None) -> None:
+    def patch(
+        self, ranges: Range | List[Range], clean_up: bool = True,
+        /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None
+    ) -> None:
         """
         Patching method. This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from fractions import Fraction
-from typing import Any, List, Tuple, Type
+from typing import Any, List, Sequence, Tuple, Type
 
 import vapoursynth as vs
 from lvsfunc import normalize_ranges
@@ -28,11 +28,10 @@ def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> L
     return [list(trim) for trim in normalize_ranges(clip, trims)]
 
 
-def set_eafile_properties(file_obj: FileInfo2,
-                          external_audio_file: str,
-                          external_audio_clip: vs.VideoNode | None = None,
-                          trims: List[Trim | DuplicateFrame] | Trim | None = None,
-                          use_ap: bool = True) -> FileInfo2:
+def set_eafile_properties(
+    file_obj: FileInfo2, external_audio_file: str, external_audio_clip: vs.VideoNode | None = None,
+    trims: List[Trim | DuplicateFrame] | Trim | None = None, use_ap: bool = True
+) -> FileInfo2:
     file_obj.path = VPath(external_audio_file)
     file_obj.a_src = VPath(external_audio_file)
     file_obj.path_without_ext = VPath(os.path.splitext(external_audio_file)[0])
@@ -73,8 +72,11 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     return track_channels, original_codecs
 
 
-def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: Range | List[Range] | None = None,
-           fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
+def run_ap(
+    file_obj: FileInfo2, is_aac: bool = True,
+    trims: Range | List[Range] | None = None,
+    fps: Fraction | None = None, **enc_overrides: Any
+) -> List[str]:
     # TODO Annoy begna for this: https://github.com/begna112/bvsfunc/issues/16
     try:
         from bvsfunc.util.AudioProcessor import video_source
@@ -120,10 +122,11 @@ def check_aac_encoders_installed() -> None:
         raise MissingDependenciesError("", message="Neither qaac nor ffmpeg are installed!")
 
 
-def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
-                           all_tracks: bool = False, codec: str = 'AAC',
-                           xml_file: str | None = None,
-                           lang: List[Lang] = [JAPANESE]) -> List[AudioTrack]:
+def iterate_ap_audio_files(
+    audio_files: List[str], track_channels: List[int],
+    all_tracks: bool = False, codec: str = 'AAC',
+    xml_file: str | None = None, lang: List[Lang] = [JAPANESE]
+) -> List[AudioTrack]:
     xml_arg: Tuple[str, str] = ('', '')
 
     # TODO: Multi-track support
@@ -161,9 +164,11 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
 no_track_warning: str = "There must be at least one audio track in your file!"
 
 
-def iterate_cutter(file_obj: FileInfo2, cutter: Type[AudioCutter] = SoxCutter,
-                   tracks: int = 1, out_path: VPath | None = None,
-                   **overrides: Any) -> List[AudioCutter]:
+def iterate_cutter(
+    file_obj: FileInfo2, cutter: Type[AudioCutter] = SoxCutter,
+    tracks: int = 1, out_path: VPath | None = None,
+    **overrides: Any
+) -> List[AudioCutter]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -176,10 +181,12 @@ def iterate_cutter(file_obj: FileInfo2, cutter: Type[AudioCutter] = SoxCutter,
     return [cutter(file_obj, track=i, **overrides) for i in range(tracks)]
 
 
-def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncoder,
-                    tracks: int = 1, out_path: VPath | None = None,
-                    xml_file: str | List[str | None] | None = None,
-                    **overrides: Any) -> List[AudioEncoder]:
+def iterate_encoder(
+    file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncoder,
+    tracks: int = 1, out_path: VPath | None = None,
+    xml_file: str | Sequence[str | None] | None = None,
+    **overrides: Any
+) -> List[AudioEncoder]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -189,7 +196,7 @@ def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncod
             out_path = VPath(og_path[0] + r"_track_\{track_number:s\}" + og_path[1])
         file_obj.a_enc_cut = out_path
 
-    if not isinstance(xml_file, List):
+    if not isinstance(xml_file, Sequence):
         xml_file = [xml_file] * tracks
 
     if encoder in (QAACEncoder, FDKAACEncoder):
@@ -198,9 +205,10 @@ def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncod
     return [encoder(file=file_obj, track=i, **overrides) for i in range(tracks)]  # type: ignore
 
 
-def iterate_extractors(file_obj: FileInfo2, extractor: Type[AudioExtracter] = Eac3toAudioExtracter,
-                       tracks: int = 1, out_path: VPath | None = None,
-                       **overrides: Any) -> List[AudioExtracter] | None:
+def iterate_extractors(
+    file_obj: FileInfo2, extractor: Type[AudioExtracter] = Eac3toAudioExtracter,
+    tracks: int = 1, out_path: VPath | None = None, **overrides: Any
+) -> List[AudioExtracter] | None:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -219,8 +227,10 @@ def iterate_extractors(file_obj: FileInfo2, extractor: Type[AudioExtracter] = Ea
     return [extractor(file=file_obj, track_in=i, track_out=i, **overrides) for i in range(tracks)]  # type: ignore
 
 
-def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None = None,
-                   codecs: str | List[str | None] | None = None, lang: Lang = JAPANESE) -> List[AudioTrack]:
+def iterate_tracks(
+    file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None = None,
+    codecs: str | Sequence[str | None] | None = None, lang: Lang = JAPANESE
+) -> List[AudioTrack]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -232,7 +242,7 @@ def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None 
 
     assert file_obj.a_enc_cut
 
-    if not isinstance(codecs, List):
+    if not isinstance(codecs, Sequence):
         codecs = [codecs] * tracks
 
     assert len(codecs) == tracks, 'You need to specify codecs for all tracks!'
@@ -242,8 +252,7 @@ def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None 
     ]
 
 
-def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup,
-                       use_ap: bool = True) -> FileInfo2:
+def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup, use_ap: bool = True) -> FileInfo2:
     try:
         assert isinstance(file_obj.a_src, VPath)
     except AssertionError:

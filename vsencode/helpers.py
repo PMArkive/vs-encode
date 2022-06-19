@@ -3,6 +3,8 @@ Helper functions used by `__main__`.
 """
 from __future__ import annotations
 
+__all__: List[str] = ['FileInfo', 'get_encoder_cores', 'verify_file_exists']
+
 import math
 import multiprocessing as mp
 from typing import List, Sequence
@@ -11,12 +13,6 @@ from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
 
 from .types import FilePath, PresetBackup
-
-__all__: List[str] = [
-    'FileInfo',
-    'get_encoder_cores',
-    'verify_file_exists'
-]
 
 
 def get_encoder_cores() -> int:

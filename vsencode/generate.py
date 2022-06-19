@@ -6,6 +6,8 @@ but are recommended to run prior to running Encoder.
 """
 from __future__ import annotations
 
+__all__: List[str] = ['IniSetup']
+
 import os
 import subprocess as sp
 import sys
@@ -18,11 +20,6 @@ from vardautomation import VPath, logger
 
 from .templates.encoders import qaac_template, x264_defaults, x265_defaults
 from .types import LOSSY_ENCODERS_GENERATOR, valid_file_values
-
-__all__: List[str] = [
-    'IniSetup'
-]
-
 
 caller_name = sys.argv[0]
 

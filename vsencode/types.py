@@ -3,6 +3,8 @@ Generic types.
 """
 from __future__ import annotations
 
+__all__: List[str] = ['AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC']
+
 import os
 from enum import IntEnum
 from pathlib import Path
@@ -10,14 +12,10 @@ from typing import List, Literal, Union
 
 from vardautomation import Preset, PresetType, VPath
 
-__all__: List[str] = [
-    'AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC'
-]
-
 
 # Valid filename values. Any of these MUST be in the filename for the right info to be parsed!
 # These should be extensive enough, but should it be missing something, please send in an Issue.
-valid_file_values: List[str] = [
+valid_file_values = [
     'ncop', 'nced',
     'op', 'ed',
     'mv', 'ins',

@@ -24,39 +24,37 @@ def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> 
     return finalise_clip(clip, bits, tv_range)
 
 
-def get_video_encoder(v_encoder: str | VideoLanEncoder | VIDEO_CODEC,
-                      settings: str | bool | None = None,
-                      **encoder_settings: Any) -> VideoLanEncoder:
-    if not settings:
-        settings = None
-    elif isinstance(settings, str):
-        if not verify_file_exists(settings):
-            raise FileNotFoundError(f"Settings file not found at {settings}!")
-    else:
+def get_video_encoder(
+    v_encoder: VIDEO_CODEC, settings: str | bool | None = None, **kwargs: Any
+) -> VideoLanEncoder:
+    if settings is True or not settings:
+        raise NotImplementedError
         #  VEncSettingsSetup(v_encoder)
         ...
 
-    if isinstance(v_encoder, VideoLanEncoder):
-        return v_encoder
-    else:
-        v_encoder = v_encoder.lower()
-        match v_encoder:
-            case 'x264' | 'h264': return X264Custom(settings, **encoder_settings)
-            case 'x265' | 'h265': return X265Custom(settings, **encoder_settings)
-            case _: raise NoVideoEncoderError
+    settings = str(settings)
+
+    if not verify_file_exists(settings):
+        raise FileNotFoundError(f"Settings file not found at {settings}!")
+
+    match v_encoder.lower():
+        case 'x264' | 'h264': return X264Custom(settings, **kwargs)
+        case 'x265' | 'h265': return X265Custom(settings, **kwargs)
+        case _: raise NoVideoEncoderError
 
 
-def get_lossless_video_encoder(l_encoder: str | LosslessEncoder | LOSSLESS_VIDEO_ENCODER,
-                               **encoder_settings: Any) -> LosslessEncoder:
-    threads = encoder_settings.pop("threads", get_encoder_cores())
+def get_lossless_video_encoder(
+    l_encoder: str | LosslessEncoder | LOSSLESS_VIDEO_ENCODER, **kwargs: Any
+) -> LosslessEncoder:
+    threads = kwargs.pop("threads", get_encoder_cores())
 
     if isinstance(l_encoder, LosslessEncoder):
         return l_encoder
     else:
         l_encoder = l_encoder.lower()
         match l_encoder:
-            case 'nvencclossless' | 'nvenc': return NVEncCLossless(**encoder_settings)
-            case 'ffv1': return FFV1(threads=threads)
+            case 'nvencclossless' | 'nvenc': return NVEncCLossless(**kwargs)
+            case 'ffv1': return FFV1(threads=threads, **kwargs)
             case _: raise ValueError("Invalid lossless video encoder!")
 
 
