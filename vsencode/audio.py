@@ -128,13 +128,18 @@ def check_aac_encoders_installed() -> None:
 def iterate_ap_audio_files(
     audio_files: List[str], track_channels: List[int],
     all_tracks: bool = False, codec: str = 'AAC',
-    xml_file: str | None = None, lang: List[Lang] = [JAPANESE]
+    xml_file: str | List[str] | None = None, lang: List[Lang] = [JAPANESE]
 ) -> List[AudioTrack]:
-    xml_arg: Tuple[str, str] = ('', '')
+    if xml_file:
+        if isinstance(xml_file, str):
+            xml_file = [xml_file]
 
-    # TODO: Multi-track support
-    if isinstance(xml_file, str):
-        xml_arg = ('--tags', f'0:{str(xml_file)}')
+        xml_args = [('--tags', f'0:{str(xml)}') for xml in xml_file]
+    else:
+        xml_args = [('', '')]
+
+    if (diff := len(audio_files) - len(xml_args)):
+        xml_args.extend(xml_args[-1:] * diff)
 
     if not track_channels:
         track_channels = [2] * len(audio_files)
@@ -150,7 +155,7 @@ def iterate_ap_audio_files(
 
     a_tracks: List[AudioTrack] = []
 
-    for i, (track, channels) in enumerate(zip(audio_files, track_channels), start=1):
+    for i, (track, channels, xml_arg) in enumerate(zip(audio_files, track_channels, xml_args), start=1):
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
