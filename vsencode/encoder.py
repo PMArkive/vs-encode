@@ -10,7 +10,7 @@ import vapoursynth as vs
 from lvsfunc import check_variable
 from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
                             LosslessEncoder, MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder,
-                            PassthroughAudioEncoder, Patch, QAACEncoder, RunnerConfig, SelfRunner, VideoLanEncoder,
+                            PassthroughAudioEncoder, patch, QAACEncoder, RunnerConfig, SelfRunner, VideoLanEncoder,
                             VideoTrack, VPath, logger)
 
 from .audio import (check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter,
@@ -520,8 +520,7 @@ class EncodeRunner:
             self._perform_cleanup(runner, deep_clean=deep_clean)
 
     def patch(self, ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [], clean_up: bool = True,
-              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None,
-              deep_clean: bool = False) -> None:
+              /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None) -> None:
         """
         Patching method. This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!
@@ -548,24 +547,12 @@ class EncodeRunner:
             else:
                 logger.warning(f"{self.file.name_file_final} already exists; please ensure it's the correct file!")
 
-        runner = Patch(
-            encoder=self.v_encoder,
-            clip=self.clip,
-            file=self.file,
-            ranges=ranges,
-            output_filename=output_filename
-        )
-
-        logger.success("Everything passed checks succesfully! Starting encode...")
-        runner.run()
+        patch(self.v_encoder, self.clip, self.file, ranges, output_filename, clean_up)
 
         if not verify_file_exists(self.file.name_file_final):
             raise FileNotFoundError(f"Could not find {self.file.name_file_final}! Aborting...")
 
-        if clean_up:
-            self._perform_cleanup(runner, deep_clean=deep_clean)
-
-    def _perform_cleanup(self, runner_object: SelfRunner | Patch, /, *, deep_clean: bool = False) -> None:
+    def _perform_cleanup(self, runner_object: SelfRunner, /, *, deep_clean: bool = False) -> None:
         """
         Helper function that performs clean-up after running the encode.
         """
@@ -574,8 +561,6 @@ class EncodeRunner:
         error: bool = False
 
         try:
-            runner_object.do_cleanup()
-        except AttributeError:
             runner_object.work_files.remove(self.file.name_clip_output)
 
             if self.chapters_setup:
