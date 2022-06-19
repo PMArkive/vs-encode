@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 import vapoursynth as vs
 from lvsfunc import check_variable
 from vardautomation import (  # type: ignore
-    JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder,
+    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder,
     MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig,
     SelfRunner, VideoLanEncoder, VideoTrack, VPath, logger, patch
 )
@@ -24,10 +24,7 @@ from .exceptions import (
 )
 from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
-from .types import (
-    AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
-    VIDEO_CODEC
-)
+from .types import AUDIO_CODEC, LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 from .util import get_timecodes_path
 from .video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 
@@ -85,9 +82,9 @@ class EncodeRunner:
     # Generic Muxer vars
     v_encoder: VideoLanEncoder
     l_encoder: LosslessEncoder | None = None
-    a_extracters: BUILTIN_AUDIO_EXTRACTORS | List[BUILTIN_AUDIO_EXTRACTORS] = []
-    a_cutters: BUILTIN_AUDIO_CUTTERS | List[BUILTIN_AUDIO_CUTTERS] = []
-    a_encoders: BUILTIN_AUDIO_ENCODERS | List[BUILTIN_AUDIO_ENCODERS] = []
+    a_extracters: AudioExtracter | List[AudioExtracter] | None = None
+    a_cutters: AudioCutter | List[AudioCutter] | None = None
+    a_encoders: AudioEncoder | List[AudioEncoder] | None = None
     a_tracks: List[AudioTrack] = []
     c_tracks: List[ChaptersTrack] = []
     muxer: MatroskaFile

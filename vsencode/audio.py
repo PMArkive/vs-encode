@@ -3,20 +3,20 @@ from __future__ import annotations
 import os
 import shutil
 from fractions import Fraction
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Type
 
 import vapoursynth as vs
 from lvsfunc import normalize_ranges
 from lvsfunc.types import Range
 from pymediainfo import MediaInfo  # type: ignore
 from vardautomation import (  # type: ignore
-    JAPANESE, AudioTrack, DuplicateFrame, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
+    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
     SoxCutter, Trim, VPath, logger
 )
 
 from .exceptions import MissingDependenciesError
 from .templates import language
-from .types import BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS, PresetBackup
+from .types import PresetBackup
 
 
 def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> List[List[Range]]:
@@ -161,9 +161,9 @@ def iterate_ap_audio_files(audio_files: List[str], track_channels: List[int],
 no_track_warning: str = "There must be at least one audio track in your file!"
 
 
-def iterate_cutter(file_obj: FileInfo2, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutter,
+def iterate_cutter(file_obj: FileInfo2, cutter: Type[AudioCutter] = SoxCutter,
                    tracks: int = 1, out_path: VPath | None = None,
-                   **overrides: Any) -> List[BUILTIN_AUDIO_CUTTERS]:
+                   **overrides: Any) -> List[AudioCutter]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -173,7 +173,7 @@ def iterate_cutter(file_obj: FileInfo2, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutte
             out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_src_cut = out_path
 
-    cutters: List[BUILTIN_AUDIO_CUTTERS] = []
+    cutters: List[AudioCutter] = []
 
     for i in range(tracks):
         cutters += [cutter(file_obj, track=i, **overrides)]
@@ -181,10 +181,10 @@ def iterate_cutter(file_obj: FileInfo2, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutte
     return cutters
 
 
-def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACEncoder,
+def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncoder,
                     tracks: int = 1, out_path: VPath | None = None,
                     xml_file: str | List[str] | List[None] | None = None,
-                    **overrides: Any) -> List[BUILTIN_AUDIO_ENCODERS]:
+                    **overrides: Any) -> List[AudioEncoder]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -207,7 +207,7 @@ def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACE
     if encoder in (QAACEncoder, FDKAACEncoder):
         overrides |= dict(xml_file=xml_file)
 
-    encoders: List[BUILTIN_AUDIO_ENCODERS] = []
+    encoders: List[AudioEncoder] = []
 
     for i in range(tracks):
         encoders += [encoder(file_obj, track=i, **overrides)]
@@ -215,9 +215,9 @@ def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACE
     return encoders
 
 
-def iterate_extractors(file_obj: FileInfo2, extractor: BUILTIN_AUDIO_EXTRACTORS = Eac3toAudioExtracter,
+def iterate_extractors(file_obj: FileInfo2, extractor: Type[AudioExtracter] = Eac3toAudioExtracter,
                        tracks: int = 1, out_path: VPath | None = None,
-                       **overrides: Any) -> List[BUILTIN_AUDIO_EXTRACTORS] | None:
+                       **overrides: Any) -> List[AudioExtracter] | None:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -233,7 +233,7 @@ def iterate_extractors(file_obj: FileInfo2, extractor: BUILTIN_AUDIO_EXTRACTORS 
             out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_src_cut = out_path
 
-    extractors: List[BUILTIN_AUDIO_EXTRACTORS] = []
+    extractors: List[AudioExtracter] = []
 
     for i in range(tracks):
         extractors += [extractor(file_obj, track_in=i, track_out=i, **overrides)]

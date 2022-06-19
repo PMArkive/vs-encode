@@ -6,16 +6,12 @@ from __future__ import annotations
 import os
 from enum import IntEnum
 from pathlib import Path
-from typing import List, Literal, Type, Union
+from typing import List, Literal, Union
 
-from vardautomation import (  # type: ignore
-    Eac3toAudioExtracter, EztrimCutter, FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder, MKVAudioExtracter,
-    OpusEncoder, PassthroughCutter, Preset, PresetType, QAACEncoder, ScipyCutter, SoxCutter, VPath
-)
+from vardautomation import Preset, PresetType, VPath
 
 __all__: List[str] = [
-    'AUDIO_CODEC', 'BUILTIN_AUDIO_ENCODERS', 'EncodersEnum',
-    'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC'
+    'AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC'
 ]
 
 
@@ -40,10 +36,6 @@ VIDEO_CODEC = Literal["x264", "h264", "x265", 'h265']
 LOSSLESS_VIDEO_ENCODER = Literal['nvencclossless', 'ffv1']
 AUDIO_CODEC = Literal['passthrough', 'aac', 'qaac', 'opus', 'fdkaac', 'flac']
 LOSSY_ENCODERS_GENERATOR = Literal['x264', 'x265', 'both']
-
-BUILTIN_AUDIO_CUTTERS = Union[Type[ScipyCutter], Type[SoxCutter], Type[EztrimCutter], Type[PassthroughCutter]]
-BUILTIN_AUDIO_ENCODERS = Union[Type[OpusEncoder], Type[FDKAACEncoder], Type[FlacEncoder], Type[QAACEncoder]]
-BUILTIN_AUDIO_EXTRACTORS = Union[Type[MKVAudioExtracter], Type[Eac3toAudioExtracter], Type[FFmpegAudioExtracter]]
 
 
 PresetBackup = Preset(
