@@ -106,20 +106,16 @@ class EncodeRunner:
         self.file = file
         self.clip = clip
 
-        # TODO: Support multiple languages for different tracks.
         if isinstance(lang, Lang):
             self.v_lang, self.a_lang, self.c_lang = lang, [lang], lang
-        elif len(lang) == 3:
-            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1]], lang[2]
-        elif len(lang) > 3:
+        elif len(lang) >= 3:
             self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1:-1], lang[-1]
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
-        # TODO: Add proper lang support before we spam that info
-        # logger.info(
-        #     f"Languages set — video: {self.v_lang}, audio(s): {[x for x in self.a_lang]}, chapters: {self.c_lang}"
-        # )
+        logger.info(
+            f"Languages set — video: {self.v_lang}, audio(s): {[x for x in self.a_lang]}, chapters: {self.c_lang}"
+        )
 
         self.file.name_file_final = IniSetup().parse_name()
 
@@ -296,10 +292,7 @@ class EncodeRunner:
 
         track_count: int = 0
 
-        if isinstance(self.a_lang, list):
-            audio_langs = list(self.a_lang)
-        else:
-            raise ValueError("Some kind of error occured with the audio langs.")
+        audio_langs = self.a_lang.copy()
 
         if len(audio_langs) < len(self.file.audios):
             audio_langs += [audio_langs[-1]] * (len(self.file.audios) - len(audio_langs))
@@ -325,8 +318,8 @@ class EncodeRunner:
             try:
                 track_count = len(file_copy.audios) - 1
             except AttributeError:
-                for track in file_copy.media_info.tracks:
-                    if track.track_type == 'Audio':
+                for media_track in file_copy.media_info.tracks:
+                    if media_track.track_type == 'Audio':
                         track_count += 1
 
         track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
@@ -388,15 +381,14 @@ class EncodeRunner:
 
         del file_copy
 
-        # TODO: Fix lang support
-        # lang_tracks: List[AudioTrack] = []
+        lang_tracks: List[AudioTrack] = []
 
-        # for track, lang in zip(self.a_tracks, self.a_lang):
-        #     track.lang = lang
-        #     lang_tracks += [track]
+        for track, lang in zip(self.a_tracks, self.a_lang):
+            track.lang = lang
+            lang_tracks += [track]
 
-        # logger.info(f"Setting audio tracks' languages...\nOld: {self.a_tracks}\nNew: {lang_tracks}")
-        # self.a_tracks = lang_tracks
+        logger.info(f"Setting audio tracks' languages...\nOld: {self.a_tracks}\nNew: {lang_tracks}")
+        self.a_tracks = lang_tracks
 
         if all_tracks and reorder:
             logger.info("Reordering tracks...")

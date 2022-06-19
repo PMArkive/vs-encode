@@ -139,13 +139,14 @@ def iterate_ap_audio_files(
     if not track_channels:
         track_channels = [2] * len(audio_files)
 
-    # TODO: Fix language
-    # if len(lang) < len(track_channels):
-    #     lang_old = lang
-    #     for i in range(len(track_channels) - len(lang)):
-    #          lang += [language.UNDEFINED]
-    #     logger.warning("Less languages passed than channels available! Extending the final entry."
-    #                    f"\nOld langs: {lang_old}\nnew langs: {lang}")
+    if len(lang) < len(track_channels):
+        lang_old = lang.copy()
+        lang.extend([lang[-1]] * (len(track_channels) - len(lang)))
+        logger.warning(
+            "Less languages passed than channels available! Extending the final entry.\n"
+            f"Old langs: {lang_old}\n"
+            f"New langs: {lang}"
+        )
 
     a_tracks: List[AudioTrack] = []
 
@@ -156,7 +157,8 @@ def iterate_ap_audio_files(
                 f'{codec.upper()} {get_channel_layout_str(channels)}',
                 language.UNDEFINED, i, *xml_arg
             )
-        ]  # TODO: Fix language
+        ]
+
         logger.warning(f"{audio_files[i-1]}: Added audio track ({track}, {channels})")
         if not all_tracks:
             break
