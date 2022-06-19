@@ -8,20 +8,26 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang,
-                            LosslessEncoder, MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder,
-                            PassthroughAudioEncoder, patch, QAACEncoder, RunnerConfig, SelfRunner, VideoLanEncoder,
-                            VideoTrack, VPath, logger)
+from vardautomation import (
+    JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder,
+    MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig,
+    SelfRunner, VideoLanEncoder, VideoTrack, VPath, logger, patch
+)
 
-from .audio import (check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter,
-                    iterate_encoder, iterate_extractors, iterate_tracks, run_ap, set_eafile_properties,
-                    set_missing_tracks)
-from .exceptions import (AlreadyInChainError, NoLosslessVideoEncoderError, NotEnoughValuesError, NoVideoEncoderError,
-                         common_idx_ext, reenc_codecs)
+from .audio import (
+    check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter, iterate_encoder,
+    iterate_extractors, iterate_tracks, run_ap, set_eafile_properties, set_missing_tracks
+)
+from .exceptions import (
+    AlreadyInChainError, NoLosslessVideoEncoderError, NotEnoughValuesError, NoVideoEncoderError, common_idx_ext,
+    reenc_codecs
+)
 from .generate import IniSetup, VEncSettingsGenerator
 from .helpers import verify_file_exists
-from .types import (AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS,
-                    LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC)
+from .types import (
+    AUDIO_CODEC, BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS, LOSSLESS_VIDEO_ENCODER,
+    VIDEO_CODEC
+)
 from .util import get_timecodes_path
 from .video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 

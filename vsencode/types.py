@@ -8,12 +8,10 @@ from enum import IntEnum
 from pathlib import Path
 from typing import List, Literal, Type, Union
 
-from vardautomation import (Eac3toAudioExtracter, EztrimCutter,
-                            FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder,
-                            MKVAudioExtracter, OpusEncoder, PassthroughCutter,
-                            Preset, PresetType, QAACEncoder,
-                            SoxCutter, VPath)
-from vardautomation.tooling import ScipyCutter
+from vardautomation import (
+    Eac3toAudioExtracter, EztrimCutter, FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder, MKVAudioExtracter,
+    OpusEncoder, PassthroughCutter, Preset, PresetType, QAACEncoder, SoxCutter, VPath, ScipyCutter
+)
 
 __all__: List[str] = [
     'AUDIO_CODEC', 'BUILTIN_AUDIO_ENCODERS', 'EncodersEnum',

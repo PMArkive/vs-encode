@@ -8,14 +8,14 @@ from typing import Any, List, Tuple
 import vapoursynth as vs
 from bvsfunc.util import AudioProcessor as ap
 from lvsfunc.types import Range
-from vardautomation import (JAPANESE, AudioTrack, Eac3toAudioExtracter,
-                            FDKAACEncoder, FileInfo2, Lang, Preset,
-                            QAACEncoder, SoxCutter, VPath, logger)
+from vardautomation import (
+    JAPANESE, AudioTrack, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, VPath,
+    logger
+)
 
 from .exceptions import MissingDependenciesError
 from .templates import language
-from .types import (BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS,
-                    BUILTIN_AUDIO_EXTRACTORS, PresetBackup)
+from .types import BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS, PresetBackup
 
 try:
     from pymediainfo import MediaInfo

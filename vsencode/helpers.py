@@ -8,9 +8,7 @@ import multiprocessing as mp
 from typing import List, Sequence
 
 from lvsfunc.misc import source
-from vardautomation import AnyPath, DuplicateFrame
-from vardautomation import FileInfo2
-from vardautomation import Preset, Trim, VPath, VPSIdx
+from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, Trim, VPath, VPSIdx
 
 from .types import FilePath, PresetBackup
 

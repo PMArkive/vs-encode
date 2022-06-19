@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from vardautomation.tooling.video import X264, X265
+from vardautomation import X264, X265
 
 from .helpers import get_encoder_cores
 

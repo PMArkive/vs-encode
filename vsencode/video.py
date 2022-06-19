@@ -4,8 +4,7 @@ from typing import Any, Dict, Tuple
 
 import vapoursynth as vs
 from lvsfunc.util import get_prop
-from vardautomation import (FFV1, LosslessEncoder, NVEncCLossless,
-                            VideoLanEncoder)
+from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
 from vsutil import get_depth
 
 from .codecs import X264Custom, X265Custom
