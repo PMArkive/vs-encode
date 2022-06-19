@@ -8,8 +8,8 @@ from typing import Any, List, Tuple
 import vapoursynth as vs
 from lvsfunc import normalize_ranges
 from lvsfunc.types import Range
-from pymediainfo import MediaInfo
-from vardautomation import (
+from pymediainfo import MediaInfo  # type: ignore
+from vardautomation import (  # type: ignore
     JAPANESE, AudioTrack, DuplicateFrame, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
     SoxCutter, Trim, VPath, logger
 )

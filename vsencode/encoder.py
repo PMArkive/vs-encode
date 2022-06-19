@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (
+from vardautomation import (  # type: ignore
     JAPANESE, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder,
     MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig,
     SelfRunner, VideoLanEncoder, VideoTrack, VPath, logger, patch
