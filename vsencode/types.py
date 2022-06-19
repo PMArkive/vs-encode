@@ -6,9 +6,9 @@ from __future__ import annotations
 import os
 from enum import IntEnum
 from pathlib import Path
-from typing import List, Literal, Tuple, Type, Union
+from typing import List, Literal, Type, Union
 
-from vardautomation import (DuplicateFrame, Eac3toAudioExtracter, EztrimCutter,
+from vardautomation import (Eac3toAudioExtracter, EztrimCutter,
                             FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder,
                             MKVAudioExtracter, OpusEncoder, PassthroughCutter,
                             Preset, PresetType, QAACEncoder,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import vapoursynth as vs
 from lvsfunc.util import get_prop
@@ -73,8 +73,9 @@ def validate_qp_clip(clip: vs.VideoNode, qp_clip: vs.VideoNode) -> vs.VideoNode:
     return qp_clip
 
 
-def normalize_zones(clip: vs.VideoNode, ranges: Dict[Tuple[int | None, int | None], Dict[str, Any]]
-                    ) -> Dict[Tuple[int, int], Dict[str, Any]]:
+def normalize_zones(
+    clip: vs.VideoNode, ranges: Dict[Tuple[int | None, int | None], Dict[str, Any]]
+) -> Dict[Tuple[int, int], Dict[str, Any]]:
     """
     Normalizes zones, much like `lvsfunc.normalize_ranges`.
     """
