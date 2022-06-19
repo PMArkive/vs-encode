@@ -3,8 +3,6 @@ Useful utility functions for encoders.
 """
 from __future__ import annotations
 
-__all__: List[str] = ['get_shader', 'get_timecodes_path', 'get_vs_core']
-
 import ctypes
 import math
 import multiprocessing as mp
@@ -12,13 +10,15 @@ import os
 import sys
 from functools import cache
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable
 
 import vapoursynth as vs
 from vardautomation import VPath
 from vardautomation import get_vs_core as _get_vs_core
 
 from .generate import IniSetup
+
+__all__ = ['get_shader', 'get_timecodes_path', 'get_vs_core']
 
 
 @cache

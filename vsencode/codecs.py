@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from vardautomation import X264, X265
 
 from .helpers import get_encoder_cores
 
-__all__: List[str] = [
-    'X264Custom',
-    'X265Custom'
-]
+__all__ = ['X264Custom', 'X265Custom']
 
 
 class X264Custom(X264):
@@ -30,8 +27,7 @@ class X264Custom(X264):
     """
 
     def set_variable(self) -> Any:
-        return super().set_variable() | dict(
-            thread=get_encoder_cores())
+        return super().set_variable() | dict(thread=get_encoder_cores())
 
 
 class X265Custom(X265):
@@ -52,5 +48,4 @@ class X265Custom(X265):
     """
 
     def set_variable(self) -> Any:
-        return super().set_variable() | dict(
-            thread=get_encoder_cores())
+        return super().set_variable() | dict(thread=get_encoder_cores())

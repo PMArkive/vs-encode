@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-__all__: List[str] = ['EncodeRunner']
-
 import os
 import shutil
 from copy import copy as shallow_copy
@@ -28,6 +26,8 @@ from .helpers import verify_file_exists
 from .types import AUDIO_CODEC, LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 from .util import get_timecodes_path
 from .video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
+
+__all__ = ['EncodeRunner']
 
 common_idx_ext: List[str] = ['lwi', 'ffindex']
 

@@ -3,12 +3,12 @@ Generic types.
 """
 from __future__ import annotations
 
-__all__: List[str] = ['AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC']
+__all__ = ['AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC']
 
 import os
 from enum import IntEnum
 from pathlib import Path
-from typing import List, Literal, Union
+from typing import Literal, Union
 
 from vardautomation import Preset, PresetType, VPath
 

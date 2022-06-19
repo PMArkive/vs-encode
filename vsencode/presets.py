@@ -3,8 +3,6 @@ Common encoding presets.
 """
 from __future__ import annotations
 
-__all__: List[str] = ['encode', 'x264_aac_preset', 'x264_flac_preset', 'x265_aac_preset', 'x265_flac_preset']
-
 from typing import Any, Dict, List, Tuple
 
 import vapoursynth as vs
@@ -13,6 +11,8 @@ from vardefunc.types import Range
 
 from .encoder import EncodeRunner
 from .types import AUDIO_CODEC, VIDEO_CODEC
+
+__all__ = ['encode', 'x264_aac_preset', 'x264_flac_preset', 'x265_aac_preset', 'x265_flac_preset']
 
 
 def encode(
