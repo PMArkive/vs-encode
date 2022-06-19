@@ -8,7 +8,7 @@ import multiprocessing as mp
 from typing import List, Sequence
 
 from lvsfunc.misc import source
-from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, Trim, VPath, VPSIdx
+from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, Trim, VPath, VPSIdx
 
 from .types import FilePath, PresetBackup
 
@@ -45,8 +45,6 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = N
     :returns:               A FileInfo object containing all the information
                             pertaining to your video and optionally audio.
     """
-    from vardautomation import FileInfo2, PresetBDWAV64
-
     if preset is not None:
         list_of_presets = [preset]
         if len(list_of_presets) == 1:

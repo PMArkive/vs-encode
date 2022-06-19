@@ -6,7 +6,8 @@ from fractions import Fraction
 from typing import Any, List, Tuple
 
 import vapoursynth as vs
-from lvsfunc.types import Range
+from lvsfunc import Range, normalize_ranges
+from pymediainfo import MediaInfo
 from vardautomation import (
     JAPANESE, AudioTrack, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, VPath,
     logger
@@ -16,15 +17,9 @@ from .exceptions import MissingDependenciesError
 from .templates import language
 from .types import BUILTIN_AUDIO_CUTTERS, BUILTIN_AUDIO_ENCODERS, BUILTIN_AUDIO_EXTRACTORS, PresetBackup
 
-try:
-    from pymediainfo import MediaInfo
-except ModuleNotFoundError:
-    raise ModuleNotFoundError("audio: missing dependency 'pymediainfo'")
-
 
 def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> List[List[Range]]:
     """Convert list[tuple] into list[list]. begna pls"""
-    from lvsfunc.util import normalize_ranges
 
     if trims is None:
         return [[0, clip.num_frames-1]]
@@ -83,7 +78,11 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
 
 def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
-    from bvsfunc.util.AudioProcessor import video_source
+    # TODO Annoy begna for this: https://github.com/begna112/bvsfunc/issues/16
+    try:
+        from bvsfunc.util.AudioProcessor import video_source
+    except ImportError:
+        raise ModuleNotFoundError("audio.run_ap: missing dependency 'bvsfunc'!")
 
     if 'silent' not in enc_overrides:
         enc_overrides |= dict(silent=False)

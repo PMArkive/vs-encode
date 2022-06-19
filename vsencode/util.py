@@ -3,10 +3,11 @@ Useful utility functions for encoders.
 """
 from __future__ import annotations
 
-import sys
+import ctypes
 import math
 import multiprocessing as mp
 import os
+import sys
 from functools import cache
 from pathlib import Path
 from typing import Iterable, List
@@ -41,8 +42,6 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
     in_cwd = Path(os.path.join(os.getcwd(), filename))
 
     if sys.platform == "win32":
-        import ctypes
-
         buf = ctypes.create_unicode_buffer(1024)
         ctypes.windll.shell32.SHGetFolderPathW(None, 28, None, 0, buf)
 

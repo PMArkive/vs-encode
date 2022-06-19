@@ -5,6 +5,7 @@ from typing import Any, Dict, Tuple
 import vapoursynth as vs
 from lvsfunc.util import get_prop
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
+from vardefunc import finalise_clip
 from vsutil import get_depth
 
 from .codecs import X264Custom, X265Custom
@@ -14,11 +15,6 @@ from .types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 
 
 def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> vs.VideoNode:
-    try:
-        from vardefunc.util import finalise_clip
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError("Missing dependency 'vardefunc'")
-
     if get_prop(clip.get_frame(0), '_ColorRange', int) == 0:
         tv_range = False
 

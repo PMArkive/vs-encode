@@ -10,7 +10,7 @@ from typing import List, Literal, Type, Union
 
 from vardautomation import (
     Eac3toAudioExtracter, EztrimCutter, FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder, MKVAudioExtracter,
-    OpusEncoder, PassthroughCutter, Preset, PresetType, QAACEncoder, SoxCutter, VPath, ScipyCutter
+    OpusEncoder, PassthroughCutter, Preset, PresetType, QAACEncoder, ScipyCutter, SoxCutter, VPath
 )
 
 __all__: List[str] = [
