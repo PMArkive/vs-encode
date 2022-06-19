@@ -125,7 +125,7 @@ class EncodeRunner:
 
         self.file.name_file_final = IniSetup().parse_name()
 
-    def video(self, encoder: VIDEO_CODEC | VideoLanEncoder | bool = 'x265', settings: str | bool | None = None,
+    def video(self, encoder: VIDEO_CODEC = 'x265', settings: str | bool | None = None,
               /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
               *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
               **enc_overrides: Any) -> "EncodeRunner":
@@ -374,9 +374,9 @@ class EncodeRunner:
             sets = encoder_overrides
 
             match enc:
-                case 'passthrough': self.a_encoders = iterate_encoder(file_copy, PassthroughAudioEncoder,
-                                                                      tracks=track_count, **sets)
-                case 'aac': self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **sets)
+                case 'passthrough':
+                    self.a_encoders = iterate_encoder(file_copy, PassthroughAudioEncoder, tracks=track_count, **sets)
+                case 'aac' | 'qaac': self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **sets)
                 case 'flac': self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **sets)
                 case 'opus': self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **sets)
                 case 'fdkaac': self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **sets)

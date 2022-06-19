@@ -9,6 +9,7 @@ import vapoursynth as vs
 from vardautomation import FileInfo2
 
 from .encoder import EncodeRunner
+from .types import AUDIO_CODEC, VIDEO_CODEC
 
 __all__: List[str] = [
     'encode',
@@ -18,7 +19,7 @@ __all__: List[str] = [
 
 
 def encode(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
-           video_enc: str = 'x264', audio_enc: str = 'qaac',
+           video_enc: VIDEO_CODEC = 'x264', audio_enc: AUDIO_CODEC = 'qaac',
            zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
            patch_ranges: int | Tuple[int, int] | List[int | Tuple[int, int]] = [],
            encoder_credit: str = '', clean_up: bool = True,
@@ -60,8 +61,9 @@ def encode(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                             Although if you're using this, you should really just
                             be calling the methods directly yourself.
     """
-    chain = EncodeRunner(file, clip).video(encoder=video_enc, zones=zones, **video_args) \
-        .audio(encoder=audio_enc, **audio_args).mux(encoder_credit=encoder_credit)
+    chain = EncodeRunner(file, clip) \
+        .video(video_enc, zones=zones, **video_args) \
+        .audio(audio_enc, **audio_args).mux(encoder_credit=encoder_credit)
 
     if patch:
         chain.patch(ranges=patch_ranges, clean_up=clean_up, **patch_args)
