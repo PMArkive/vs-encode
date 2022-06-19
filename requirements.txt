@@ -1,6 +1,6 @@
-VapourSynth>=58
-lvsfunc>=0.4.1
-pymediainfo==5.1.0
+VapourSynth>=59
+lvsfunc>=0.4.2
+pymediainfo>=5.1.0
 sox==1.4.1
-vardautomation==1.0.0
-vardefunc>=0.6.2
+vardautomation==1.2.1
+vardefunc>=0.7.0
