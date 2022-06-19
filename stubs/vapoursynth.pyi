@@ -474,8 +474,6 @@ class Environment:
     def active(self) -> bool: ...
     @property
     def env(self) -> EnvironmentData: ...
-    @property
-    def env_id(self) -> int: ...
     @classmethod
     def is_single(cls) -> bool: ...
     def copy(self) -> Environment: ...
@@ -484,7 +482,7 @@ class Environment:
     def __enter__(self) -> Environment: ...
 
     def __exit__(
-        self, ty: typing.Type[BaseException] | None, tv: BaseException | None, tb: types.TracebackTyp | None
+        self, ty: typing.Type[BaseException] | None, tv: BaseException | None, tb: types.TracebackType | None
     ) -> None: ...
 
 
@@ -3660,7 +3658,7 @@ class _Plugin_std_AudioNode_Bound(Plugin):
 RawNodeType = typing.TypeVar('RawNodeType', 'VideoNode', 'AudioNode')
 
 
-class _RawNode(typing.Generic[RawNodeType], typing.Generic[RawFrameType]):
+class _RawNode(typing.Generic[RawNodeType], typing.Generic[RawFrameType]):  # type: ignore
     num_frames: int
 
     def get_frame_async(self, n: int) -> _Future[RawFrameType]: ...

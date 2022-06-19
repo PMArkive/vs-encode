@@ -6,7 +6,6 @@ from fractions import Fraction
 from typing import Any, List, Tuple
 
 import vapoursynth as vs
-from bvsfunc.util import AudioProcessor as ap
 from lvsfunc.types import Range
 from vardautomation import (
     JAPANESE, AudioTrack, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, VPath,
@@ -84,11 +83,12 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
 
 def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
+    from bvsfunc.util.AudioProcessor import video_source
 
     if 'silent' not in enc_overrides:
         enc_overrides |= dict(silent=False)
 
-    return ap.video_source(
+    return video_source(
         in_file=file_obj.path.to_str(),
         out_file=str(file_obj.a_src_cut),
         trim_list=resolve_ap_trims(trims, file_obj.clip),
