@@ -10,6 +10,7 @@ reenc_codecs: List[str] = ['AC-3', 'EAC-3']
 
 class FrameLengthMismatch(ValueError):
     """Raised when the amount of frames between two clips don't match."""
+
     def __init__(self, len_a: int, len_b: int,
                  message: str = "The two given clips don't have the same length ({len_a} vs. {len_b})."):
         super().__init__(message.format(len_a=len_a, len_b=len_b))

@@ -62,13 +62,13 @@ def encode(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
                             be calling the methods directly yourself.
     """
     chain = EncodeRunner(file, clip) \
-        .video(video_enc, zones=zones, **video_args) \
+        .video(video_enc, None, zones, **video_args) \
         .audio(audio_enc, **audio_args).mux(encoder_credit=encoder_credit)
 
     if patch:
-        chain.patch(ranges=patch_ranges, clean_up=clean_up, **patch_args)
+        chain.patch(patch_ranges, clean_up, **patch_args)
     else:
-        chain.run(clean_up=clean_up, **run_args)
+        chain.run(clean_up, **run_args)
 
 
 def x264_aac_preset(file: FileInfo2, clip: vs.VideoNode, patch: bool = False,

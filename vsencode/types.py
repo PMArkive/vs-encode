@@ -8,7 +8,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import List, Literal, Type, Union
 
-from vardautomation import (
+from vardautomation import (  # type: ignore
     Eac3toAudioExtracter, EztrimCutter, FDKAACEncoder, FFmpegAudioExtracter, FlacEncoder, MKVAudioExtracter,
     OpusEncoder, PassthroughCutter, Preset, PresetType, QAACEncoder, ScipyCutter, SoxCutter, VPath
 )

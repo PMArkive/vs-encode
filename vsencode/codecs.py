@@ -28,6 +28,7 @@ class X264Custom(X264):
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (s)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (s)
     """
+
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
             thread=get_encoder_cores())
@@ -49,6 +50,7 @@ class X265Custom(X265):
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (d)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (d)
     """
+
     def set_variable(self) -> Any:
         return super().set_variable() | dict(
             thread=get_encoder_cores())

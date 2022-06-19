@@ -6,11 +6,12 @@ from fractions import Fraction
 from typing import Any, List, Tuple
 
 import vapoursynth as vs
-from lvsfunc import Range, normalize_ranges
+from lvsfunc import normalize_ranges
+from lvsfunc.types import Range
 from pymediainfo import MediaInfo
 from vardautomation import (
-    JAPANESE, AudioTrack, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, VPath,
-    logger
+    JAPANESE, AudioTrack, DuplicateFrame, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
+    SoxCutter, Trim, VPath, logger
 )
 
 from .exceptions import MissingDependenciesError
@@ -31,7 +32,7 @@ def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> L
 def set_eafile_properties(file_obj: FileInfo2,
                           external_audio_file: str,
                           external_audio_clip: vs.VideoNode | None = None,
-                          trims: List[int] | None = None,
+                          trims: List[Trim | DuplicateFrame] | Trim | None = None,
                           use_ap: bool = True) -> FileInfo2:
     file_obj.path = VPath(external_audio_file)
     file_obj.a_src = VPath(external_audio_file)
@@ -47,7 +48,7 @@ def set_eafile_properties(file_obj: FileInfo2,
     return file_obj
 
 
-def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int] | List[str]]:
+def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int], List[str]]:
     track_channels: List[int] = []
     original_codecs: List[str] = []
     media_info: MediaInfo
@@ -68,7 +69,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
             track_channels += [track.channel_s]
             original_codecs += [track.format]
 
-            logger.warning(f"{obj.path} track {i}: {format} (Channels: {channel})")
+            logger.warning(f"{media_info.path} track {i}: {format} (Channels: {channel})")
 
             if not all_tracks:
                 break

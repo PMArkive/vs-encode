@@ -114,7 +114,7 @@ class EncodeRunner:
         elif len(lang) == 3:
             self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1]], lang[2]
         elif len(lang) > 3:
-            self.v_lang, self.a_lang, self.c_lang = lang[0], [lang[1:-1]], lang[-1]
+            self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1:-1], lang[-1]
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
@@ -513,7 +513,7 @@ class EncodeRunner:
             runner.inject_qpfile_params(qpfile_clip=self.qp_clip)
 
         if self.post_lossless is not None:
-            runner.plp_function = self.post_lossless
+            runner.plp_function = self.post_lossless  # type: ignore
 
         try:  # TODO: Fix this somehow: https://github.com/Ichunjo/vardautomation/issues/106
             runner.run()
@@ -571,7 +571,7 @@ class EncodeRunner:
         try:
             runner_object.work_files.remove(self.file.name_clip_output)
 
-            if self.chapters_setup:
+            if self.chapters_setup and self.file.chapter:
                 runner_object.work_files.remove(self.file.chapter)
 
             runner_object.work_files.clear()
