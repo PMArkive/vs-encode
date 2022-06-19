@@ -156,7 +156,7 @@ class EncodeRunner:
 
         if zones:
             # TODO: Add normalisation
-            zones = dict(sorted(zones.items()))  # type:ignore[return-value, arg-type]
+            zones = dict(sorted(zones.items()))
 
         if settings is None:
             logger.warning("video: 'No settings file found. "
@@ -465,7 +465,7 @@ class EncodeRunner:
         for track in self.a_tracks:
             all_tracks += [track]
 
-        for track in self.c_tracks:  # type:ignore[assignment]
+        for track in self.c_tracks:
             all_tracks += [track]
 
         self.muxer = MatroskaFile(self.file.name_file_final.absolute(), all_tracks, '--ui-language', 'en')

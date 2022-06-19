@@ -48,7 +48,7 @@ def set_eafile_properties(file_obj: FileInfo2,
         file_obj.clip = external_audio_clip
 
     if use_ap:
-        file_obj.trims_or_dfs = trims  # type:ignore
+        file_obj.trims_or_dfs = trims
 
     return file_obj
 
@@ -59,7 +59,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     media_info: MediaInfo
 
     if isinstance(obj, str):
-        media_info = MediaInfo.parse(obj)  # type:ignore[assignment]
+        media_info = MediaInfo.parse(obj)
     elif isinstance(obj, FileInfo2):
         media_info = obj.media_info
     else:
@@ -91,7 +91,7 @@ def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = N
     return ap.video_source(
         in_file=file_obj.path.to_str(),
         out_file=str(file_obj.a_src_cut),
-        trim_list=resolve_ap_trims(trims, file_obj.clip),  # type:ignore[arg-type]
+        trim_list=resolve_ap_trims(trims, file_obj.clip),
         trims_framerate=fps or file_obj.clip.fps,
         frames_total=file_obj.clip.num_frames,
         flac=not is_aac, aac=is_aac, **enc_overrides
@@ -176,7 +176,7 @@ def iterate_cutter(file_obj: FileInfo2, cutter: BUILTIN_AUDIO_CUTTERS = SoxCutte
     cutters: List[BUILTIN_AUDIO_CUTTERS] = []
 
     for i in range(tracks):
-        cutters += [cutter(file_obj, track=i, **overrides)]  # type:ignore[list-item]
+        cutters += [cutter(file_obj, track=i, **overrides)]
 
     return cutters
 
@@ -195,14 +195,14 @@ def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACE
         file_obj.a_enc_cut = out_path
 
     if xml_file is None:
-        xml_file: List[str] | List[None] = []  # type:ignore[no-redef]
+        xml_file: List[str] | List[None] = []
         for i in range(tracks):
-            xml_file += [None]  # type:ignore
+            xml_file += [None]
     elif isinstance(xml_file, str):
         xml_file_og = xml_file
-        xml_file: List[str] = []  # type:ignore[no-redef]
+        xml_file: List[str] = []
         for i in range(tracks):
-            xml_file += [xml_file_og]  # type:ignore[operator]
+            xml_file += [xml_file_og]
 
     if encoder in (QAACEncoder, FDKAACEncoder):
         overrides |= dict(xml_file=xml_file)
@@ -210,7 +210,7 @@ def iterate_encoder(file_obj: FileInfo2, encoder: BUILTIN_AUDIO_ENCODERS = QAACE
     encoders: List[BUILTIN_AUDIO_ENCODERS] = []
 
     for i in range(tracks):
-        encoders += [encoder(file_obj, track=i, **overrides)]  # type:ignore[list-item]
+        encoders += [encoder(file_obj, track=i, **overrides)]
 
     return encoders
 
@@ -236,7 +236,7 @@ def iterate_extractors(file_obj: FileInfo2, extractor: BUILTIN_AUDIO_EXTRACTORS 
     extractors: List[BUILTIN_AUDIO_EXTRACTORS] = []
 
     for i in range(tracks):
-        extractors += [extractor(file_obj, track_in=i, track_out=i, **overrides)]  # type:ignore[list-item]
+        extractors += [extractor(file_obj, track_in=i, track_out=i, **overrides)]
 
     return extractors
 
@@ -253,14 +253,14 @@ def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None 
         file_obj.a_enc_cut = out_path
 
     if codecs is None:
-        codecs: List[str] = []  # type:ignore[no-redef]
+        codecs: List[str] = []
         for i in range(tracks):
-            codecs += [None]  # type:ignore
+            codecs += [None]
     if isinstance(codecs, str):
         og_codec = codecs
-        codecs: List[str] = []  # type:ignore[no-redef]
+        codecs: List[str] = []
         for i in range(tracks):
-            codecs += [og_codec]  # type:ignore[operator]
+            codecs += [og_codec]
 
     audio_tracks: List[AudioTrack] = []
 
