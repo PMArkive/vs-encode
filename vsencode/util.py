@@ -50,15 +50,17 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
 
 
 @cache
-def get_vs_core(threads: Iterable[int | None] = None,
-                max_cache_size: int | None = None,
-                reserve_core: bool = True) -> vs.Core:
+def get_vs_core(
+    threads: int | Iterable[int] | None = None, max_cache_size: int | None = None, reserve_core: bool = True
+) -> vs.Core:
     """
     Gets the VapourSynth singleton core for you through vardautomation with additional parameters.
     """
-    if not threads:
+    if isinstance(threads, int):
+        threads = range(0, threads)
+    elif not threads:
         threads_for_vs = math.ceil(mp.cpu_count() * 0.6)
-        threads = range(0, (threads_for_vs - 2) if reserve_core else range(0, threads_for_vs))
+        threads = range(0, threads_for_vs - 2 if reserve_core else 0)
 
     return _get_vs_core(threads, max_cache_size)
 
