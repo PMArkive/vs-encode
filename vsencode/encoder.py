@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import copy
 import os
 import shutil
+from copy import copy as shallow_copy
 from fractions import Fraction
 from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import vapoursynth as vs
 from lvsfunc import check_variable
-from vardautomation import (  # type: ignore
-    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, Chapter, ChaptersTrack, FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder,
-    MatroskaFile, MatroskaXMLChapters, MediaTrack, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig,
-    SelfRunner, VideoLanEncoder, VideoTrack, VPath, logger, patch
+from vardautomation import (
+    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, Chapter, ChaptersTrack, DuplicateFrame,
+    FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder, MatroskaFile, MatroskaXMLChapters, MediaTrack,
+    OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig, SelfRunner, Trim, VideoLanEncoder, VideoTrack,
+    VPath, logger, patch
 )
 
 from .audio import (
@@ -243,7 +244,7 @@ class EncodeRunner:
               *,
               fps: Fraction | float | None = None,
               reorder: List[int] | None = None,
-              custom_trims: List[int] | None = None,
+              custom_trims: List[Trim | DuplicateFrame] | Trim | None = None,
               external_audio_file: str | None = None,
               external_audio_clip: vs.VideoNode | None = None,
               cutter_overrides: Dict[str, Any] = {},
@@ -291,10 +292,7 @@ class EncodeRunner:
         track_count: int = 0
 
         if isinstance(self.a_lang, list):
-            try:
-                audio_langs = list(self.a_lang[0])
-            except TypeError:
-                audio_langs = list(self.a_lang)
+            audio_langs = list(self.a_lang)
         else:
             raise ValueError("Some kind of error occured with the audio langs.")
 
@@ -303,17 +301,10 @@ class EncodeRunner:
 
         ea_file = external_audio_file
 
-        if custom_trims is not None:
-            og_trims = list(self.file.trims_or_dfs)  # In case multiple trims were passed
-            custom_trims = list(custom_trims)
-
-            trim_s, trim_e = og_trims[0], og_trims[-1]
-            custom_trims = (trim_s + custom_trims[0], trim_e + custom_trims[-1])
-
-        trims = custom_trims or self.file.trims_or_dfs
+        trims = custom_trims or self.file.trims_or_dfs or []
 
         self.file = set_missing_tracks(self.file, use_ap=use_ap)
-        file_copy = copy.copy(self.file)
+        file_copy = shallow_copy(self.file)
 
         if isinstance(fps, int) or isinstance(fps, float):
             fps = Fraction(f'{fps}/1')
@@ -510,7 +501,7 @@ class EncodeRunner:
             runner.inject_qpfile_params(qpfile_clip=self.qp_clip)
 
         if self.post_lossless is not None:
-            runner.plp_function = self.post_lossless  # type: ignore
+            runner.plp_function = self.post_lossless
 
         try:  # TODO: Fix this somehow: https://github.com/Ichunjo/vardautomation/issues/106
             runner.run()

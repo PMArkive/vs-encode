@@ -8,10 +8,10 @@ from typing import Any, List, Tuple, Type
 import vapoursynth as vs
 from lvsfunc import normalize_ranges
 from lvsfunc.types import Range
-from pymediainfo import MediaInfo  # type: ignore
-from vardautomation import (  # type: ignore
-    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter, FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder,
-    SoxCutter, Trim, VPath, logger
+from pymediainfo import MediaInfo
+from vardautomation import (
+    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter,
+    FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, Trim, VPath, logger
 )
 
 from .exceptions import MissingDependenciesError
@@ -77,7 +77,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     return track_channels, original_codecs
 
 
-def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: List[int] | None = None,
+def run_ap(file_obj: FileInfo2, is_aac: bool = True, trims: Range | List[Range] | None = None,
            fps: Fraction | None = None, **enc_overrides: Any) -> List[str]:
     # TODO Annoy begna for this: https://github.com/begna112/bvsfunc/issues/16
     try:
@@ -183,7 +183,7 @@ def iterate_cutter(file_obj: FileInfo2, cutter: Type[AudioCutter] = SoxCutter,
 
 def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncoder,
                     tracks: int = 1, out_path: VPath | None = None,
-                    xml_file: str | List[str] | List[None] | None = None,
+                    xml_file: str | List[str | None] | None = None,
                     **overrides: Any) -> List[AudioEncoder]:
     if tracks < 1:
         raise ValueError(no_track_warning)
@@ -195,12 +195,12 @@ def iterate_encoder(file_obj: FileInfo2, encoder: Type[AudioEncoder] = QAACEncod
         file_obj.a_enc_cut = out_path
 
     if xml_file is None:
-        xml_file: List[str] | List[None] = []
+        xml_file = []
         for i in range(tracks):
             xml_file += [None]
     elif isinstance(xml_file, str):
         xml_file_og = xml_file
-        xml_file: List[str] = []
+        xml_file = []
         for i in range(tracks):
             xml_file += [xml_file_og]
 
@@ -221,11 +221,11 @@ def iterate_extractors(file_obj: FileInfo2, extractor: Type[AudioExtracter] = Ea
     if tracks < 1:
         raise ValueError(no_track_warning)
 
-        try:
-            file_obj.write_a_src_cut(1)
-        except NameError:
-            logger.warning("`Audios` attribute found! Extracting audio with `write_a_src_cut`...")
-            return None
+        # try:
+        #     file_obj.write_a_src_cut(1)
+        # except NameError:
+        #     logger.warning("`Audios` attribute found! Extracting audio with `write_a_src_cut`...")
+        #     return None
 
     if file_obj.a_src_cut is None and out_path:
         if r"{track_number:s}" not in str(file_obj.a_src_cut):
@@ -242,7 +242,7 @@ def iterate_extractors(file_obj: FileInfo2, extractor: Type[AudioExtracter] = Ea
 
 
 def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None = None,
-                   codecs: str | List[str] | None = None, lang: Lang = JAPANESE) -> List[AudioTrack]:
+                   codecs: str | List[str | None] | None = None, lang: Lang = JAPANESE) -> List[AudioTrack]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -252,13 +252,15 @@ def iterate_tracks(file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None 
             out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_enc_cut = out_path
 
+    assert file_obj.a_enc_cut
+
     if codecs is None:
-        codecs: List[str] = []
+        codecs = []
         for i in range(tracks):
             codecs += [None]
     if isinstance(codecs, str):
         og_codec = codecs
-        codecs: List[str] = []
+        codecs = []
         for i in range(tracks):
             codecs += [og_codec]
 
@@ -281,7 +283,7 @@ def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup,
         try:
             assert file_obj.a_src_cut == file_obj.name
         except AssertionError:
-            file_obj.a_src_cut = file_obj.name
+            file_obj.a_src_cut = VPath(file_obj.name)
             logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src_cut}\" -> \"{file_obj.name}\")...")
     else:
         try:
