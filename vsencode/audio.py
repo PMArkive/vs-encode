@@ -8,7 +8,7 @@ from typing import Any, List, Sequence, Tuple, Type
 import vapoursynth as vs
 from lvsfunc import normalize_ranges
 from lvsfunc.types import Range
-from pymediainfo import MediaInfo  # type: ignore
+from pymediainfo import MediaInfo
 from vardautomation import (
     JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter,
     FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, Trim, VPath, logger
@@ -52,11 +52,14 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     media_info: MediaInfo
 
     if isinstance(obj, str):
-        media_info = MediaInfo.parse(obj)
+        parsed = MediaInfo.parse(obj)
+        media_info = MediaInfo(parsed) if isinstance(parsed, str) else parsed
     elif isinstance(obj, FileInfo2):
         media_info = obj.media_info
     else:
         raise ValueError("Obj is not a FileInfo2 object or a path!")
+
+    path_name = obj.path if isinstance(obj, FileInfo2) else obj
 
     logger.info("Checking track info...")
     for i, track in enumerate(media_info.tracks, start=1):
@@ -64,7 +67,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
             track_channels += [track.channel_s]
             original_codecs += [track.format]
 
-            logger.warning(f"{media_info.path} track {i}: {track.format} (Channels: {track.channel_s})")
+            logger.warning(f"{path_name} track {i}: {track.format} (Channels: {track.channel_s})")
 
             if not all_tracks:
                 break
