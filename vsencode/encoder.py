@@ -4,15 +4,15 @@ import os
 import shutil
 from copy import copy as shallow_copy
 from fractions import Fraction
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Sequence, Tuple, Type
 
 import vapoursynth as vs
 from lvsfunc import check_variable
 from vardautomation import (
     JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, Chapter, ChaptersTrack, DuplicateFrame,
-    FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder, MatroskaFile, MatroskaXMLChapters, MediaTrack,
-    OpusEncoder, PassthroughAudioEncoder, QAACEncoder, RunnerConfig, SelfRunner, Trim, VideoLanEncoder, VideoTrack,
-    VPath, logger, patch
+    FDKAACEncoder, FileInfo2, FlacEncoder, Lang, LosslessEncoder, MatroskaFile, MatroskaXMLChapters, OpusEncoder,
+    PassthroughAudioEncoder, QAACEncoder, RunnerConfig, SelfRunner, Track, Trim, VideoLanEncoder, VideoTrack, VPath,
+    logger, patch
 )
 
 from .audio import (
@@ -238,7 +238,7 @@ class EncodeRunner:
 
     def audio(self, encoder: AUDIO_CODEC = 'aac',
               /,
-              xml_file: str | List[str] | None = None,
+              xml_file: str | None = None,
               all_tracks: bool = False,
               use_ap: bool = True,
               *,
@@ -339,17 +339,22 @@ class EncodeRunner:
                 logger.info("Audio codec: FLAC (FLAC through AudioProcessor)")
 
             self.audio_files = run_ap(file_copy, is_aac, trims, fps, **encoder_overrides)
-            self.a_tracks = iterate_ap_audio_files(self.audio_files, track_channels,
-                                                   all_tracks=all_tracks, codec='AAC' if is_aac else 'FLAC',
-                                                   xml_file=xml_file, lang=self.a_lang)
+            self.a_tracks = iterate_ap_audio_files(
+                self.audio_files, track_channels, all_tracks=all_tracks,
+                codec='AAC' if is_aac else 'FLAC', xml_file=xml_file, lang=self.a_lang
+            )
         else:
             if hasattr(self.file, "audios"):
                 for i, _ in enumerate(file_copy.audios):
+                    if not file_copy.a_src_cut or not file_copy.a_enc_cut:
+                        continue
+
                     if not VPath(file_copy.a_src_cut.to_str().format(track_number=i)).exists():
                         file_copy.write_a_src_cut(index=i)
 
-                    self.a_tracks += [AudioTrack(file_copy.a_enc_cut.format(track_number=i),
-                                                 original_codecs[i], audio_langs[i], i)]
+                    self.a_tracks += [
+                        AudioTrack(file_copy.a_enc_cut.format(track_number=i), original_codecs[i], audio_langs[i], i)
+                    ]
 
                     if not all_tracks:
                         break
@@ -358,18 +363,19 @@ class EncodeRunner:
                 self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
                 self.a_tracks = iterate_tracks(file_copy, track_count, None, original_codecs)
 
-            # Purely so we can get >120 chars
-            sets = encoder_overrides
+            vencoder: Type[AudioEncoder]
 
             match enc:
-                case 'passthrough':
-                    self.a_encoders = iterate_encoder(file_copy, PassthroughAudioEncoder, tracks=track_count, **sets)
-                case 'aac' | 'qaac': self.a_encoders = iterate_encoder(file_copy, QAACEncoder, tracks=track_count, **sets)
-                case 'flac': self.a_encoders = iterate_encoder(file_copy, FlacEncoder, tracks=track_count, **sets)
-                case 'opus': self.a_encoders = iterate_encoder(file_copy, OpusEncoder, tracks=track_count, **sets)
-                case 'fdkaac': self.a_encoders = iterate_encoder(file_copy, FDKAACEncoder, tracks=track_count, **sets)
-                case _: raise ValueError(f"'\"{encoder}\" is not a valid audio encoder! "
-                                         "Please see the docstring for valid encoders.'")
+                case 'passthrough': vencoder = PassthroughAudioEncoder
+                case 'aac' | 'qaac': vencoder = QAACEncoder
+                case 'flac': vencoder = FlacEncoder
+                case 'opus': vencoder = OpusEncoder
+                case 'fdkaac': vencoder = FDKAACEncoder
+                case _: raise ValueError(
+                    f"'\"{encoder}\" is not a valid audio encoder! Please see the docstring for valid encoders.'"
+                )
+
+            self.a_encoders = iterate_encoder(file_copy, vencoder, tracks=track_count, **encoder_overrides)
 
         del file_copy
 
@@ -390,8 +396,16 @@ class EncodeRunner:
 
             old_a_tracks = self.a_tracks
             self.a_tracks = [self.a_tracks[i] for i in reorder]
-            logger.warning(f"Old order: {['{i}: {n} ({l})'.format(i=i, n=tr.name, l=tr.lang.iso639) for i, tr in enumerate(old_a_tracks)]}\n"  # noqa
-                           f"New order: {['{i}: {n} ({l})'.format(i=i, n=tr.name, l=tr.lang.iso639) for i, tr in enumerate(self.a_tracks)]}")  # noqa
+
+            def _format_tracks(tracks: List[AudioTrack]) -> List[str]:
+                return [
+                    '{i}: {n} ({l})'.format(i=i, n=tr.name, l=tr.lang.iso639) for i, tr in enumerate(tracks)
+                ]
+
+            logger.warning(
+                f"Old order: {_format_tracks(old_a_tracks)}\n"
+                f"New order: {_format_tracks(self.a_tracks)}"
+            )
 
         self.audio_setup = True
         return self
@@ -446,15 +460,10 @@ class EncodeRunner:
             logger.info(f"Credit set in video metadata: \"{encoder_credit}\"...")
 
         # Adding all the tracks
-        all_tracks: List[MediaTrack] = [
-            VideoTrack(self.file.name_clip_output, encoder_credit, self.v_lang)
+        all_tracks: List[Track] = [
+            VideoTrack(self.file.name_clip_output, encoder_credit, self.v_lang),
+            *self.a_tracks, *self.c_tracks
         ]
-
-        for track in self.a_tracks:
-            all_tracks += [track]
-
-        for track in self.c_tracks:
-            all_tracks += [track]
 
         self.muxer = MatroskaFile(self.file.name_file_final.absolute(), all_tracks, '--ui-language', 'en')
 
@@ -617,8 +626,7 @@ class EncodeRunner:
         logger.success("Cleaning up done!")
 
         if error:
-            logger.warning("There were errors found while cleaning. "
-                           "Some files may not have been cleaned properly!")
+            logger.warning("There were errors found while cleaning. Some files may not have been cleaned properly!")
 
 
 def check_in_chain(name: str, var: bool, verify: bool = False) -> None:

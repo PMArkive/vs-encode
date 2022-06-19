@@ -35,7 +35,7 @@ valid_file_values: List[str] = [
 VIDEO_CODEC = Literal["x264", "h264", "x265", 'h265']
 LOSSLESS_VIDEO_ENCODER = Literal['nvencclossless', 'ffv1']
 AUDIO_CODEC = Literal['passthrough', 'aac', 'qaac', 'opus', 'fdkaac', 'flac']
-LOSSY_ENCODERS_GENERATOR = Literal['x264', 'x265', 'both']
+LOSSY_ENCODERS_GENERATOR = Union[VIDEO_CODEC, Literal['both']]
 
 
 PresetBackup = Preset(
