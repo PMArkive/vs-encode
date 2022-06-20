@@ -15,7 +15,6 @@ from vardautomation import (
 )
 
 from .exceptions import MissingDependenciesError
-from .templates import language
 from .types import PresetBackup
 
 
