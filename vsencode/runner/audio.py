@@ -25,17 +25,17 @@ else:
 __all__ = ['AudioRunner']
 
 # These codecs get re-encoded/errored out by all the extracters, making a simple passthrough impossible.
-reenc_codecs: List[str] = ['AC-3', 'EAC-3']
+reenc_codecs = ['AC-3', 'EAC-3']
 
 
 class AudioRunner(BaseRunner):
-    a_extracters: AudioExtracter | List[AudioExtracter] | None = None
-    a_cutters: AudioCutter | List[AudioCutter] | None = None
-    a_encoders: AudioEncoder | List[AudioEncoder] | None = None
-    a_tracks: List[AudioTrack] = []
+    a_extracters = list[AudioExtracter]()
+    a_cutters = list[AudioCutter]()
+    a_encoders = list[AudioEncoder]()
+    a_tracks = list[AudioTrack]()
 
     # Audio-related vars
-    audio_files: List[str] = []
+    audio_files = list[str]()
 
     def audio(
         self, encoder: AUDIO_CODEC = 'aac',
@@ -176,7 +176,7 @@ class AudioRunner(BaseRunner):
 
         del file_copy
 
-        lang_tracks: List[AudioTrack] = []
+        lang_tracks = list[AudioTrack]()
 
         for track, lang in zip(self.a_tracks, self.a_lang):
             track.lang = lang

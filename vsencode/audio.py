@@ -46,8 +46,8 @@ def set_eafile_properties(
 
 
 def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int], List[str]]:
-    track_channels: List[int] = []
-    original_codecs: List[str] = []
+    track_channels = list[int]()
+    original_codecs = list[str]()
     media_info: MediaInfo
 
     if isinstance(obj, str):
@@ -152,7 +152,7 @@ def iterate_ap_audio_files(
             f"New langs: {lang}"
         )
 
-    a_tracks: List[AudioTrack] = []
+    a_tracks = list[AudioTrack]()
 
     for i, (track, channels, xml_arg, tlang) in enumerate(zip(audio_files, track_channels, xml_args, lang), start=1):
         a_tracks += [
@@ -216,7 +216,7 @@ def iterate_encoder(
 def iterate_extractors(
     file_obj: FileInfo2, extractor: Type[AudioExtracter] = Eac3toAudioExtracter,
     tracks: int = 1, out_path: VPath | None = None, **overrides: Any
-) -> List[AudioExtracter] | None:
+) -> List[AudioExtracter]:
     if tracks < 1:
         raise ValueError(no_track_warning)
 

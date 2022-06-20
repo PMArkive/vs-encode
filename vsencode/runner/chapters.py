@@ -15,7 +15,7 @@ __all__ = ['ChaptersRunner']
 
 
 class ChaptersRunner(BaseRunner):
-    c_tracks: List[ChaptersTrack] = []
+    c_tracks = list[ChaptersTrack]()
 
     def chapters(
         self, chapter_list: List[Chapter], chapter_offset: int | None = None, chapter_names: Sequence[str] | None = None

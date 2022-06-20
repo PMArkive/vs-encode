@@ -13,7 +13,7 @@ from .util import get_timecodes_path
 
 __all__ = ['EncodeRunner']
 
-common_idx_ext: List[str] = ['lwi', 'ffindex']
+common_idx_ext = ['lwi', 'ffindex']
 
 
 class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List
+from typing import List
 
 import vapoursynth as vs
 from lvsfunc import check_variable
@@ -30,13 +30,13 @@ class BaseRunner:
     c_lang: Lang
 
     # Keeping track of the steps done...
-    setup_steps: Dict[SetupStep, bool] = {
+    setup_steps = dict[SetupStep, bool]({
         SetupStep.VIDEO: False,
         SetupStep.LOSSLESS: False,
         SetupStep.AUDIO: False,
         SetupStep.CHAPTERS: False,
         SetupStep.MUXING: False
-    }
+    })
 
     def __init__(self, file: FileInfo2, clip: vs.VideoNode, lang: Lang | List[Lang] = JAPANESE) -> None:
         logger.success(f"Initializing vardautomation environent for {file.name}...")
