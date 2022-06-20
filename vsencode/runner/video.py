@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Tuple, cast
 
 import vapoursynth as vs
@@ -7,6 +8,7 @@ from vardautomation import LosslessEncoder, VideoLanEncoder, VPath, logger
 
 from ..exceptions import NoLosslessVideoEncoderError, NoVideoEncoderError
 from ..generate import VEncSettingsGenerator
+from ..helpers import verify_file_exists
 from ..types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 from ..video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 from .base import BaseRunner, SetupStep
@@ -51,6 +53,8 @@ class VideoRunner(BaseRunner):
                                     and will also make your timer's life way easier.
                                     If None, uses base cut clip. If False, disables qp_clip injection.
         :param prefetch:            Prefetch. Set a low value to limit the number of frames rendered at once.
+                                    This should not be set higher than your keyint in the encoding settings.
+                                    Default is input clip's framerate * 10.
         :param enc_overrides:       Overrides for the encoder settings.
         """
         self.check_in_chain(SetupStep.VIDEO)
@@ -64,10 +68,13 @@ class VideoRunner(BaseRunner):
             zones = dict(sorted(zones.items()))
 
         if settings is None:
-            logger.warning(
-                "video: No settings file found. We will automatically generate one for you using sane defaults. "
-                f"To disable this behaviour and use default {encoder} settings, set `settings=False`."
-            )
+            if verify_file_exists(f".settings/{encoder}_settings"):
+                settings = f".settings/{encoder}_settings"
+            else:
+                logger.warning(
+                    "video: No settings file found. We will automatically generate one for you using sane defaults. "
+                    f"To disable this behaviour and use default {encoder} settings, set `settings=False`."
+                )
 
             match encoder:
                 case 'x264' | 'h264': VEncSettingsGenerator(encoder)
@@ -79,6 +86,15 @@ class VideoRunner(BaseRunner):
             self.v_encoder = get_video_encoder(encoder, settings, zones=zones, **enc_overrides)
         else:
             raise NoVideoEncoderError
+
+        if prefetch is None:
+            with open(str(settings)) as f:
+                fr = f.read()
+                if "{keyint:d}" in fr:
+                    prefetch = round(self.clip.fps) * 10
+                elif "--keyint" in fr:  # I feel that there's a better way to do this, I'm just dumb
+                    match = re.search(r"--keyint \d+", fr)
+                    prefetch = int(re.sub(r"[^\d+]", '', match.group(0))) if match else 0
 
         self.v_encoder.prefetch = prefetch or 0
         self.v_encoder.resumable = True
