@@ -367,19 +367,19 @@ class EncodeRunner:
                 self.a_cutters = iterate_cutter(file_copy, tracks=track_count, **cutter_overrides)
                 self.a_tracks = iterate_tracks(file_copy, track_count, None, original_codecs)
 
-            vencoder: Type[AudioEncoder]
+            aencoder: Type[AudioEncoder]
 
             match enc:
-                case 'passthrough': vencoder = PassthroughAudioEncoder
-                case 'aac' | 'qaac': vencoder = QAACEncoder
-                case 'flac': vencoder = FlacEncoder
-                case 'opus': vencoder = OpusEncoder
-                case 'fdkaac': vencoder = FDKAACEncoder
+                case 'passthrough': aencoder = PassthroughAudioEncoder
+                case 'aac' | 'qaac': aencoder = QAACEncoder
+                case 'flac': aencoder = FlacEncoder
+                case 'opus': aencoder = OpusEncoder
+                case 'fdkaac': aencoder = FDKAACEncoder
                 case _: raise ValueError(
                     f"'\"{encoder}\" is not a valid audio encoder! Please see the docstring for valid encoders.'"
                 )
 
-            self.a_encoders = iterate_encoder(file_copy, vencoder, tracks=track_count, **encoder_overrides)
+            self.a_encoders = iterate_encoder(file_copy, aencoder, tracks=track_count, **encoder_overrides)
 
         del file_copy
 
