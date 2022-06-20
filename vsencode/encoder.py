@@ -316,13 +316,12 @@ class EncodeRunner:
         if ea_file:
             file_copy = set_eafile_properties(file_copy, ea_file, external_audio_clip, trims, use_ap)
 
-        if all_tracks:
-            try:
-                track_count = len(file_copy.audios) - 1
-            except AttributeError:
-                for media_track in file_copy.media_info.tracks:
-                    if media_track.track_type == 'Audio':
-                        track_count += 1
+        try:
+            track_count = len(file_copy.audios)
+        except AttributeError:
+            for media_track in file_copy.media_info.tracks:
+                if media_track.track_type == 'Audio':
+                    track_count += 1
 
         track_channels, original_codecs = get_track_info(ea_file or file_copy, all_tracks)
 
