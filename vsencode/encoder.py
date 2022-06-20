@@ -108,6 +108,8 @@ class EncodeRunner:
 
         if isinstance(lang, Lang):
             self.v_lang, self.a_lang, self.c_lang = lang, [lang], lang
+        elif len(lang) == 2:
+            self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1:], lang[0]
         elif len(lang) >= 3:
             self.v_lang, self.a_lang, self.c_lang = lang[0], lang[1:-1], lang[-1]
         else:
