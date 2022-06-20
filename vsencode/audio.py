@@ -221,12 +221,6 @@ def iterate_extractors(
     if tracks < 1:
         raise ValueError(no_track_warning)
 
-        # try:
-        #     file_obj.write_a_src_cut(1)
-        # except NameError:
-        #     logger.warning("`Audios` attribute found! Extracting audio with `write_a_src_cut`...")
-        #     return None
-
     if file_obj.a_src_cut is None and out_path:
         if r"{track_number:s}" not in str(file_obj.a_src_cut):
             og_path = os.path.splitext(out_path)
