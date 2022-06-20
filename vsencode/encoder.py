@@ -115,10 +115,6 @@ class EncodeRunner:
         else:
             raise NotEnoughValuesError(f"You must give a list of at least three (3) languages! Not {len(lang)}!'")
 
-        logger.info(
-            f"Languages set — video: {self.v_lang}, audio(s): {[x for x in self.a_lang]}, chapters: {self.c_lang}"
-        )
-
         self.file.name_file_final = IniSetup().parse_name()
 
     def video(
