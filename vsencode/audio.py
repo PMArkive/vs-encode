@@ -155,12 +155,11 @@ def iterate_ap_audio_files(
 
     a_tracks: List[AudioTrack] = []
 
-    for i, (track, channels, xml_arg) in enumerate(zip(audio_files, track_channels, xml_args), start=1):
+    for i, (track, channels, xml_arg, tlang) in enumerate(zip(audio_files, track_channels, xml_args, lang), start=1):
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
-                f'{codec.upper()} {get_channel_layout_str(channels)}',
-                language.UNDEFINED, i, *xml_arg
+                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, *xml_arg
             )
         ]
 
