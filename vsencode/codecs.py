@@ -12,6 +12,7 @@ __all__ = ['X264Custom', 'X265Custom']
 class X264Custom(X264):
     """
     Custom x265 runner that adds new useful keys.
+
     You set them by putting {key:type} in the settings file.
     `s` is used for strings, `d` is used for integers.
 
@@ -27,12 +28,14 @@ class X264Custom(X264):
     """
 
     def set_variable(self) -> Any:
+        """Set a custom variable."""
         return super().set_variable() | dict(thread=get_encoder_cores())
 
 
 class X265Custom(X265):
     """
     Custom x265 runner that adds new useful keys.
+
     You set them by putting {key:type} in the settings file.
     `s` is used for strings, `d` is used for integers.
 
@@ -48,4 +51,5 @@ class X265Custom(X265):
     """
 
     def set_variable(self) -> Any:
+        """Set a custom variable."""
         return super().set_variable() | dict(thread=get_encoder_cores())

@@ -1,6 +1,4 @@
-"""
-Sane generic setting templates
-"""
+"""Sane generic setting templates."""
 
 x264_defaults: str = """-o {clip_output:s} - --demuxer y4m --frames {frames:d} --threads {thread:d}
 --fps {fps_num:d}/{fps_den:d} --sar 1:1 --videoformat ntsc --range tv

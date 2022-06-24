@@ -22,6 +22,8 @@ __all__ = ['VideoRunner']
 
 
 class VideoRunner(BaseRunner):
+    """Generate VideoRunner object."""
+
     # Generic Muxer vars
     v_encoder: VideoLanEncoder
     l_encoder: LosslessEncoder | None = None
@@ -37,7 +39,7 @@ class VideoRunner(BaseRunner):
         **enc_overrides: Any
     ) -> EncodeRunner:
         """
-        Basic video-related setup for the output video.
+        Set up the relevant settings for the video.
 
         :param encoder:             What encoder to use when encoding the video.
                                     Valid options are: x264, x265, a custom VideoLanEncoder object,

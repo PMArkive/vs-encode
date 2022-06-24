@@ -1,6 +1,4 @@
-"""
-Common encoding presets.
-"""
+"""Common encoding presets."""
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
@@ -27,7 +25,8 @@ def encode(
     patch_args: Dict[str, Any] = {},
 ) -> None:
     """
-    Basic encode runner function to steer the Encoder class with.
+    Encode function to steer the presets with.
+
     This is meant to be used for simple encodes where you don't need to mess with the finer details too much.
     Presets have been made using this function as a base as well.
 
@@ -78,7 +77,8 @@ def x264_aac_preset(
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
-    Default encoding runner using x264 for video and AudioProcessor (QAAC) to AAC for audio.
+    Encode runner using x264 for video and AudioProcessor (QAAC) to AAC for audio.
+
     See the `encoder` function for more information.
     """
     encode(file, clip, patch, 'x264', 'qaac', zones, patch_ranges, encoder_credit, clean_up)
@@ -91,7 +91,8 @@ def x264_flac_preset(
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
-    Default encoding runner using x264 for video and AudioProcessor (FLAC) to FLAC for audio.
+    Encode runner using x264 for video and AudioProcessor (FLAC) to FLAC for audio.
+
     See the `encoder` function for more information.
     """
     encode(file, clip, patch, 'x264', 'flac', zones, patch_ranges, encoder_credit, clean_up)
@@ -104,7 +105,8 @@ def x265_aac_preset(
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
-    Default encoding runner using x265 for video and AudioProcessor (QAAC) to AAC for audio.
+    Encode runner using x265 for video and AudioProcessor (QAAC) to AAC for audio.
+
     See the `encoder` function for more information.
     """
     encode(file, clip, patch, 'x265', 'qaac', zones, patch_ranges, encoder_credit, clean_up)
@@ -117,7 +119,8 @@ def x265_flac_preset(
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
-    Default encoding runner using x265 for video and AudioProcessor (FLAC) to FLAC for audio.
+    Encode runner using x265 for video and AudioProcessor (FLAC) to FLAC for audio.
+
     See the `encoder` function for more information.
     """
     encode(file, clip, patch, 'x265', 'flac', zones, patch_ranges, encoder_credit, clean_up)

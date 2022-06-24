@@ -1,6 +1,4 @@
-"""
-Useful utility functions for encoders.
-"""
+"""Useful utility functions for encoders."""
 from __future__ import annotations
 
 import ctypes
@@ -66,9 +64,7 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
 def get_vs_core(
     threads: int | Iterable[int] | None = None, max_cache_size: int | None = None, reserve_core: bool = True
 ) -> vs.Core:
-    """
-    Gets the VapourSynth singleton core for you through vardautomation with additional parameters.
-    """
+    """Get the VapourSynth singleton core for you through vardautomation with additional parameters."""
     if isinstance(threads, int):
         threads = range(0, threads)
     elif not threads:
@@ -80,9 +76,7 @@ def get_vs_core(
 
 @cache
 def get_timecodes_path(create_dir: bool = True) -> VPath:
-    """
-    Generates path for your timecodes file, based off the caller's filename.
-    """
+    """Generate path for your timecodes file, based off the caller's filename."""
     file_name = IniSetup().get_show_name()
     tc_path = VPath(f".assets/{file_name[-1]}/{file_name[0]}_{file_name[-1]}_timecodes.txt")
 

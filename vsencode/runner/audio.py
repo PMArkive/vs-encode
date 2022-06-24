@@ -29,6 +29,8 @@ reenc_codecs = ['AC-3', 'EAC-3']
 
 
 class AudioRunner(BaseRunner):
+    """Generate AudioRunner object."""
+
     a_extracters = list[AudioExtracter]()
     a_cutters = list[AudioCutter]()
     a_encoders = list[AudioEncoder]()
@@ -49,7 +51,7 @@ class AudioRunner(BaseRunner):
         encoder_overrides: Dict[str, Any] = {},
     ) -> EncodeRunner:
         """
-        Basic audio-related setup for the output audio.
+        Set up the relevant settings for the audio.
 
         Audio files are always trimmed using either AudioProcessor or Sox.
 

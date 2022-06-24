@@ -18,7 +18,8 @@ common_idx_ext = ['lwi', 'ffindex']
 
 class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
     """
-    Video encoding chain builder.
+    Build the encoding automation chain.
+
     There are multiple steps to video encoding and processing, and each is added as an individual step in this class.
     These can be chained in any order, except for `run` which should be run at the end.
 
@@ -56,7 +57,8 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
 
     def mux(self, encoder_credit: str = '', timecodes: str | bool | None = None) -> EncodeRunner:
         """
-        Basic muxing-related setup for the final muxer.
+        Set up the relevant settings for the muxer.
+
         This will always output an mkv file.
 
         :param encoder_credit:      Name of the person encoding the video.
@@ -95,7 +97,9 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
 
     def run(self, /, clean_up: bool = True, order: str = 'video', *, deep_clean: bool = False) -> None:
         """
-        Final runner method. This should be used AFTER setting up all the other details.
+        Set up the relevant settings for the runner and run the automation.
+
+        This should be used AFTER setting up all the other details.
 
         :param clean_up:        Clean up files after the encoding is done. Default: True.
         :param order:           Order to encode the video and audio in.
@@ -144,7 +148,9 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
         /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None
     ) -> None:
         """
-        Patching method. This can be used to patch your videos after encoding.
+        Set up the relevant settings for patching.
+
+        This can be used to patch your videos after encoding.
         Note that you should make sure you did the same setup you did when originally running the encode!
 
         :ranges:                    Frame ranges that require patching.
@@ -175,9 +181,6 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
             raise FileNotFoundError(f"Could not find {self.file.name_file_final}! Aborting...")
 
     def _perform_cleanup(self, runner_object: SelfRunner, /, *, deep_clean: bool = False) -> None:
-        """
-        Helper function that performs clean-up after running the encode.
-        """
         logger.success("Trying to clean up project files...")
 
         error: bool = False

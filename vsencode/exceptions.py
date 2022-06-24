@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# flake8: noqa
 
 class FrameLengthMismatch(ValueError):
     """Raised when the amount of frames between two clips don't match."""

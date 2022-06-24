@@ -12,6 +12,8 @@ __all__ = ['BaseRunner', 'SetupStep']
 
 
 class SetupStep(str, Enum):
+    """Enum representing all the individual steps in the automation process."""
+
     VIDEO = 'video'
     LOSSLESS = 'lossless'
     AUDIO = 'audio'
@@ -20,6 +22,8 @@ class SetupStep(str, Enum):
 
 
 class BaseRunner:
+    """Set up the relevant settings for the vardautomation base."""
+
     # init vars
     file: FileInfo2
     clip: vs.VideoNode
@@ -58,5 +62,6 @@ class BaseRunner:
         self.file.name_file_final = IniSetup().parse_name()
 
     def check_in_chain(self, step: SetupStep, verify: bool = False) -> None:
+        """Check whether step has already been run in the current chain."""
         if self.setup_steps[step] and not verify:
             raise AlreadyInChainError(step.value)

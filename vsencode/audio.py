@@ -19,8 +19,7 @@ from .types import PresetBackup
 
 
 def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> List[List[Range]]:
-    """Convert list[tuple] into list[list]. begna pls"""
-
+    """Convert list[tuple] into list[list] (begna pls)."""
     if trims is None:
         return [[0, clip.num_frames-1]]
 
@@ -31,6 +30,7 @@ def set_eafile_properties(
     file_obj: FileInfo2, external_audio_file: str, external_audio_clip: vs.VideoNode | None = None,
     trims: List[Trim | DuplicateFrame] | Trim | None = None, use_ap: bool = True
 ) -> FileInfo2:
+    """Set the external audio file properties."""
     file_obj.path = VPath(external_audio_file)
     file_obj.a_src = VPath(external_audio_file)
     file_obj.path_without_ext = VPath(os.path.splitext(external_audio_file)[0])
@@ -46,6 +46,7 @@ def set_eafile_properties(
 
 
 def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List[int], List[str]]:
+    """Try to retrieve the channels and original codecs of an audio track."""
     track_channels = list[int]()
     original_codecs = list[str]()
     media_info: MediaInfo
@@ -79,6 +80,7 @@ def run_ap(
     trims: Range | List[Range] | None = None,
     fps: Fraction | None = None, **enc_overrides: Any
 ) -> List[str]:
+    """Run bvsfunc.AudioProcessor."""
     # TODO Annoy begna for this: https://github.com/begna112/bvsfunc/issues/16
     try:
         from bvsfunc.util.AudioProcessor import video_source
@@ -99,6 +101,7 @@ def run_ap(
 
 
 def check_qaac_installed() -> bool:
+    """Check if qaac is installed."""
     b32 = shutil.which('qaac') is not None
     b64 = shutil.which('qaac64') is not None
 
@@ -106,10 +109,12 @@ def check_qaac_installed() -> bool:
 
 
 def check_ffmpeg_installed() -> bool:
+    """Check if ffmpeg is installed."""
     return shutil.which('ffmpeg') is not None
 
 
 def check_aac_encoders_installed() -> None:
+    """Check if all aac encoders are installed."""
     try:
         qaac_ins = check_qaac_installed()
     except MissingDependenciesError:
@@ -129,6 +134,7 @@ def iterate_ap_audio_files(
     all_tracks: bool = False, codec: str = 'AAC',
     xml_file: str | List[str] | None = None, lang: List[Lang] = [JAPANESE]
 ) -> List[AudioTrack]:
+    """Iterate over every ap audio file and assign relevant information to each."""
     if xml_file:
         if isinstance(xml_file, str):
             xml_file = [xml_file]
@@ -177,6 +183,7 @@ def iterate_cutter(
     tracks: int = 1, out_path: VPath | None = None,
     **overrides: Any
 ) -> List[AudioCutter]:
+    """Iterate over every audio track with the assigned audio cutter."""
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -195,6 +202,7 @@ def iterate_encoder(
     xml_file: str | Sequence[str | None] | None = None,
     **overrides: Any
 ) -> List[AudioEncoder]:
+    """Iterate over every audio track with the assigned audio encoder."""
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -217,6 +225,7 @@ def iterate_extractors(
     file_obj: FileInfo2, extractor: Type[AudioExtracter] = Eac3toAudioExtracter,
     tracks: int = 1, out_path: VPath | None = None, **overrides: Any
 ) -> List[AudioExtracter]:
+    """Iterate over every audio track with the assigned audio extractor."""
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -233,6 +242,7 @@ def iterate_tracks(
     file_obj: FileInfo2, tracks: int = 1, out_path: VPath | None = None,
     codecs: str | Sequence[str | None] | None = None, lang: Lang = JAPANESE
 ) -> List[AudioTrack]:
+    """Iterate over every audio track and set the proper properties."""
     if tracks < 1:
         raise ValueError(no_track_warning)
 
@@ -255,29 +265,31 @@ def iterate_tracks(
 
 
 def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup, use_ap: bool = True) -> FileInfo2:
+    """Set missing tracks in the given FileInfo object."""
     try:
         assert isinstance(file_obj.a_src, VPath)
     except AssertionError:
+        logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src}\" -> \"{file_obj.a_src}\")...")
         file_obj.a_src = preset.a_src
 
     if use_ap:
         try:
             assert file_obj.a_src_cut == file_obj.name
         except AssertionError:
-            file_obj.a_src_cut = VPath(file_obj.name)
             logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src_cut}\" -> \"{file_obj.name}\")...")
+            file_obj.a_src_cut = VPath(file_obj.name)
     else:
         try:
             assert isinstance(file_obj.a_src_cut, VPath)
         except AssertionError:
-            file_obj.a_src_cut = preset.a_src_cut
             logger.info(f"Set missing track a_src_cut (\"{file_obj.a_src_cut}\" -> \"{preset.a_src_cut}\")...")
+            file_obj.a_src_cut = preset.a_src_cut
 
     try:
         assert isinstance(file_obj.a_enc_cut, VPath)
     except AssertionError:
-        file_obj.a_enc_cut = preset.a_enc_cut
         logger.info(f"Set missing track a_enc_cut (\"{file_obj.a_enc_cut}\" -> \"{preset.a_enc_cut}\")...")
+        file_obj.a_enc_cut = preset.a_enc_cut
 
     return file_obj
 
@@ -285,7 +297,7 @@ def set_missing_tracks(file_obj: FileInfo2, preset: Preset = PresetBackup, use_a
 # TODO: Make this a proper function that accurately gets the channel layout.
 #       Improving this function should be a priority!!!
 def get_channel_layout_str(channels: int) -> str:
-    """Very basic channel layout picker for AudioTracks"""
+    """Return a very basic channel layout picker for audio tracks."""
     match channels:
         case 2: return '2.0'
         case 5: return '5.1'

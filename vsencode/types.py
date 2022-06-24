@@ -1,6 +1,4 @@
-"""
-Generic types.
-"""
+"""Generic types."""
 from __future__ import annotations
 
 __all__ = ['AUDIO_CODEC', 'EncodersEnum', 'FilePath', 'LOSSLESS_VIDEO_ENCODER', 'VIDEO_CODEC']
@@ -51,6 +49,7 @@ FilePath = Union[str, os.PathLike, Path, VPath]
 
 class EncodersEnum(IntEnum):
     """Encoders supported by Vardautomation. Currently broken (oops)."""
+
     # Video encoders
     # X264 = ('Video', 0)
     # X265 = ('Video', 1)

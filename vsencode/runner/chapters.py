@@ -15,13 +15,15 @@ __all__ = ['ChaptersRunner']
 
 
 class ChaptersRunner(BaseRunner):
+    """Generate ChaptersRunner object."""
+
     c_tracks = list[ChaptersTrack]()
 
     def chapters(
         self, chapter_list: List[Chapter], chapter_offset: int | None = None, chapter_names: Sequence[str] | None = None
     ) -> EncodeRunner:
         """
-        Basic chapter-related setup for the output chapters.
+        Set up the relevant settings for the chapters.
 
         :param chapter_list:        A list of all chapters.
         :param chapter_offset:      Frame offset for all chapters.

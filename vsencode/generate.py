@@ -25,6 +25,7 @@ caller_name = sys.argv[0]
 
 
 def XmlGenerator(directory: str = '.settings') -> None:
+    """Generate QAAC encoder settings."""
     if not VPath(f'{directory}/tags_aac.xml').exists():
         logger.info(f"Generating default QAAC tags xml in {directory}...")
 
@@ -40,7 +41,7 @@ def XmlGenerator(directory: str = '.settings') -> None:
 
 def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
                           directory: str = '.settings') -> None:
-
+    """Generate video encoder settings."""
     VPath(directory).mkdir(parents=True, exist_ok=True)
 
     match mode:
@@ -67,9 +68,11 @@ def _generate_settings(mode: str = 'x264', directory: str = '.settings') -> None
 
 class IniSetup:
     """
-    Class that handles all the basic filename settings of the project,
-    including parsing and generating ini files.
+    Class that handles all the basic filename settings of the project.
+
+    Includes parsing and generating ini files.
     """
+
     output_name: str
     output_dir: str
 
@@ -119,7 +122,7 @@ class IniSetup:
 
     def get_show_name(self, file_name: str = caller_name, key: str = '_', parents: int | None = None) -> List[str]:
         """
-        Finds the show's name from the file name. Also returns the episode number.
+        Find the show's name from the file name and also return the episode number.
 
         :param file_name:       Name of the file. By default, it takes the name of the script calling it.
         :param key:             Key for splitting the file name.
@@ -153,7 +156,7 @@ class IniSetup:
 
     def parse_name(self, key_name: str = '$$', key_ep: str = '@@', key_version: str = '&&') -> VPath:
         """
-        Converts a string to a proper path based on what's in the config file and __file__ name.
+        Convert a string to a proper path based on what's in the config file and __file__ name.
 
         :param key_name:        Key that indicates where in the filename the show's name should be injected.
         :param key_ep:          Key that indicates where in the filename the episode should be injected.
@@ -178,7 +181,7 @@ def init_project(venc_mode: LOSSY_ENCODERS_GENERATOR = 'both',
                  generate_settings: bool = True, generate_qaac: bool = True,
                  ) -> IniSetup:
     """
-    Creates basic files used in conjunction with the rest of this package.
+    Generate basic files used in conjunction with the rest of this package.
 
     :param venv_mode:           Video encoder mode. Decides what encode settings get generated.
                                 Valid options are 'x264', 'x265', or 'both' (default: 'both').

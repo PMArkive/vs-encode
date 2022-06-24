@@ -1,6 +1,4 @@
-"""
-Helper functions used by `__main__`.
-"""
+"""Helper functions used by `__main__`."""
 from __future__ import annotations
 
 import math
@@ -16,11 +14,12 @@ __all__ = ['FileInfo', 'get_encoder_cores', 'verify_file_exists']
 
 
 def get_encoder_cores() -> int:
-    """Returns the amount of cores to auto-relocate to the encoder"""
+    """Return the amount of cores to auto-relocate to the encoder."""
     return math.ceil(mp.cpu_count() * 0.4)
 
 
 def verify_file_exists(path: FilePath) -> bool:
+    """Verify that a given file exists."""
     return VPath(path).exists()
 
 
@@ -28,8 +27,9 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = N
              /, idx: VPSIdx | None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
              *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
     """
-    FileInfo generator using vardautomation's built-in FileInfo2 generator,
-    exposed through vs-encode for convenience with a couple of extra changes.
+    Generate FileInfo using vardautomation's built-in FileInfo2 generator.
+
+    Exposed through vs-encode for convenience with a couple of extra changes.
 
     :param path:            Path to your source file.
     :param trims_or_dfs:    Adjust the clip length by trimming or duplicating frames. Python slicing. Defaults to None.
