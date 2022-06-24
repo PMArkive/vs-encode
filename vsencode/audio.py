@@ -208,7 +208,7 @@ def iterate_encoder(
         xml_file = [xml_file] * tracks
 
     if encoder in (QAACEncoder, FDKAACEncoder):
-        overrides |= dict(xml_file=xml_file)
+        overrides |= dict(xml_tag=xml_file)
 
     return [encoder(file=file_obj, track=i, **overrides) for i in range(tracks)]  # type: ignore
 
