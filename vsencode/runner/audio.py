@@ -96,10 +96,11 @@ class AudioRunner(BaseRunner):
         ea_file = external_audio_file
 
         trims = custom_trims or self.file.trims_or_dfs or []
-        trims_ap = [
-            (trim, trim) if isinstance(trim, int) else trim
-            for trim in trims if trim and not isinstance(trim, DuplicateFrame)
-        ]
+        # TODO: Fix this. Right now it returns `[[2698, 2698], [43760, 43760]]` instead of `[[2698, 43760]]`
+        # trims_ap = [
+        #     (trim, trim) if isinstance(trim, int) else trim
+        #     for trim in trims if trim and not isinstance(trim, DuplicateFrame)
+        # ]
 
         self.file = set_missing_tracks(self.file, use_ap=use_ap)
         file_copy = shallow_copy(self.file)
@@ -135,7 +136,7 @@ class AudioRunner(BaseRunner):
             else:
                 logger.info("Audio codec: FLAC (FLAC through AudioProcessor)")
 
-            self.audio_files = run_ap(file_copy, is_aac, trims_ap, fps, **encoder_overrides)  # type: ignore
+            self.audio_files = run_ap(file_copy, is_aac, trims, fps, **encoder_overrides)  # type: ignore
             self.a_tracks = iterate_ap_audio_files(
                 self.audio_files, track_channels, all_tracks,
                 'AAC' if is_aac else 'FLAC', xml_file, self.a_lang
