@@ -141,10 +141,11 @@ def iterate_ap_audio_files(
 
         xml_args = [('--tags', f'0:{str(xml)}') for xml in xml_file]
     else:
-        xml_args = [('', '')]
+        xml_args = None
 
-    if (diff := len(audio_files) - len(xml_args)):
-        xml_args.extend(xml_args[-1:] * diff)
+    if xml_args:
+        if (diff := len(audio_files) - len(xml_args)):
+            xml_args.extend(xml_args[-1:] * diff)
 
     if not track_channels:
         track_channels = [2] * len(audio_files)

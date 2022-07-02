@@ -5,15 +5,13 @@ from fractions import Fraction
 from typing import TYPE_CHECKING, Any, Dict, List, Type, cast
 
 import vapoursynth as vs
-from vardautomation import (
-    AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, FDKAACEncoder, FlacEncoder, OpusEncoder,
-    PassthroughAudioEncoder, QAACEncoder, Trim, VPath, logger
-)
+from vardautomation import (AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, FDKAACEncoder,
+                            FlacEncoder, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, Trim, VPath, logger)
 
-from ..audio import (
-    check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter, iterate_encoder,
-    iterate_extractors, iterate_tracks, run_ap, set_eafile_properties, set_missing_tracks
-)
+from ..audio import (check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter,
+                     iterate_encoder, iterate_extractors, iterate_tracks, run_ap, set_eafile_properties,
+                     set_missing_tracks)
+from ..generate import XmlGenerator
 from ..types import AUDIO_CODEC
 from .base import BaseRunner, SetupStep
 
@@ -87,6 +85,10 @@ class AudioRunner(BaseRunner):
             check_aac_encoders_installed()
         elif enc == 'passthrough':
             use_ap = False
+
+        if not xml_file and enc == 'aac':
+            XmlGenerator()
+            xml_file = ".settings/tags_aac.xml"
 
         track_count: int = 0
 
