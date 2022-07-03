@@ -20,7 +20,7 @@ setuptools.setup(
     description="vs-encode, an extensive wrapper around vardautomation.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=["vsencode", "vsencode.templates"],
+    packages=["vsencode", "vsencode.runner", "vsencode.templates"],
     url="https://github.com/Irrational-Encoding-Wizardry/vs-encode",
     package_data={
         'vsencode': ['py.typed'],
