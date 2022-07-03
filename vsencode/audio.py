@@ -161,7 +161,8 @@ def iterate_ap_audio_files(
 
     a_tracks = list[AudioTrack]()
 
-    for i, (track, channels, xml_arg, tlang) in enumerate(zip(audio_files, track_channels, xml_args, lang), start=1):
+    zipped = zip(audio_files, track_channels, xml_args, lang)  # type:ignore[arg-type]
+    for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=1):
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
