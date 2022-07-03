@@ -70,8 +70,8 @@ class VideoRunner(BaseRunner):
             zones = dict(sorted(zones.items()))
 
         if settings is None:
-            if verify_file_exists(f".settings/{encoder}_settings"):
-                settings = f".settings/{encoder}_settings"
+            if verify_file_exists(f"_settings/{encoder}_settings"):
+                settings = f"_settings/{encoder}_settings"
             else:
                 logger.warning(
                     "video: No settings file found. We will automatically generate one for you using sane defaults. "

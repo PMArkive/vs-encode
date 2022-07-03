@@ -88,7 +88,7 @@ class AudioRunner(BaseRunner):
 
         if not xml_file and enc == 'aac':
             XmlGenerator()
-            xml_file = ".settings/tags_aac.xml"
+            xml_file = "_settings/tags_aac.xml"
 
         track_count: int = 0
 

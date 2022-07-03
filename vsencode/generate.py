@@ -24,7 +24,7 @@ __all__ = ['IniSetup']
 caller_name = sys.argv[0]
 
 
-def XmlGenerator(directory: str = '.settings') -> None:
+def XmlGenerator(directory: str = '_settings') -> None:
     """Generate QAAC encoder settings."""
     if not VPath(f'{directory}/tags_aac.xml').exists():
         logger.info(f"Generating default QAAC tags xml in {directory}...")
@@ -40,7 +40,7 @@ def XmlGenerator(directory: str = '.settings') -> None:
 
 
 def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
-                          directory: str = '.settings') -> None:
+                          directory: str = '_settings') -> None:
     """Generate video encoder settings."""
     VPath(directory).mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +53,7 @@ def VEncSettingsGenerator(mode: LOSSY_ENCODERS_GENERATOR = 'both',
         case _: raise ValueError("VEncSettingsSetup: 'Invalid mode passed!'")
 
 
-def _generate_settings(mode: str = 'x264', directory: str = '.settings') -> None:
+def _generate_settings(mode: str = 'x264', directory: str = '_settings') -> None:
     if not VPath(f'{directory}/{mode}_settings').exists():
         logger.info(f"Generating sane default settings file for {mode} in {directory}...")
 
@@ -177,7 +177,7 @@ class IniSetup:
 
 @lru_cache
 def init_project(venc_mode: LOSSY_ENCODERS_GENERATOR = 'both',
-                 settings_dir: str | List[str] = '.settings',
+                 settings_dir: str | List[str] = '_settings',
                  generate_settings: bool = True, generate_qaac: bool = True,
                  ) -> IniSetup:
     """
@@ -187,7 +187,7 @@ def init_project(venc_mode: LOSSY_ENCODERS_GENERATOR = 'both',
                                 Valid options are 'x264', 'x265', or 'both' (default: 'both').
     :param settings_dir:        Directory to output the settings to.
                                 Passing a list sets different directories per operation:
-                                ['venc settings dir', 'qaac tags dir'] (default: '.settings').
+                                ['venc settings dir', 'qaac tags dir'] (default: '_settings').
     :param generate_settings:   Generate encode settings (default: True).
     :param generate_qaac:       Generate qaac tags (default: True).
 
