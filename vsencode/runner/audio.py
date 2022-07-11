@@ -110,7 +110,7 @@ class AudioRunner(BaseRunner):
         self.file = set_missing_tracks(self.file, use_ap=use_ap)
         file_copy = shallow_copy(self.file)
 
-        if isinstance(fps, int) or isinstance(fps, float):
+        if isinstance(fps, (int, float)):
             fps = Fraction(f'{fps}/1')
 
         if ea_file:
