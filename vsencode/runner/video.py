@@ -34,8 +34,8 @@ class VideoRunner(BaseRunner):
 
     def video(
         self, encoder: VIDEO_CODEC = 'x265', settings: str | bool | None = None,
-        /, zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-        *, qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
+        zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
+        qp_clip: vs.VideoNode | bool | None = None, prefetch: int | None = None,
         **enc_overrides: Any
     ) -> EncodeRunner:
         """
@@ -116,8 +116,9 @@ class VideoRunner(BaseRunner):
         return cast(EncodeRunner, self)
 
     def lossless(
-        self, encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
-        /, post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
+        self, /,
+        encoder: LOSSLESS_VIDEO_ENCODER | LosslessEncoder = 'ffv1',
+        post_filterchain: Callable[[VPath], vs.VideoNode] | None = None,
         **enc_overrides: Any
     ) -> EncodeRunner:
         """

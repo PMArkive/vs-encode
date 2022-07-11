@@ -24,7 +24,7 @@ def verify_file_exists(path: FilePath) -> bool:
 
 
 def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = None,
-             /, idx: VPSIdx | None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
+             idx: VPSIdx | None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
              *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
     """
     Generate FileInfo using vardautomation's built-in FileInfo2 generator.

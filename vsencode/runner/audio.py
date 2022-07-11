@@ -38,8 +38,9 @@ class AudioRunner(BaseRunner):
     audio_files = list[str]()
 
     def audio(
-        self, encoder: AUDIO_CODEC = 'aac',
-        /, xml_file: str | None = None, all_tracks: bool = False, use_ap: bool = True,
+        self,
+        /, encoder: AUDIO_CODEC = 'aac',
+        xml_file: str | None = None, all_tracks: bool = False, use_ap: bool = True,
         *, fps: Fraction | float | None = None, reorder: List[int] | None = None,
         custom_trims: List[Trim | DuplicateFrame] | Trim | None = None,
         external_audio_file: str | None = None,

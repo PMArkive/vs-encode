@@ -143,8 +143,7 @@ def iterate_ap_audio_files(
     else:
         xml_args = None
 
-    if xml_args:
-        if (diff := len(audio_files) - len(xml_args)):
+    if xml_args and (diff := len(audio_files) - len(xml_args)):
             xml_args.extend(xml_args[-1:] * diff)
 
     if not track_channels:
@@ -166,7 +165,7 @@ def iterate_ap_audio_files(
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
-                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, *xml_arg
+                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, *xml_arg
             )
         ]
 
@@ -262,7 +261,7 @@ def iterate_tracks(
     assert len(codecs) == tracks, 'You need to specify codecs for all tracks!'
 
     return [
-        AudioTrack(file_obj.a_enc_cut.format(track_number=i), codec, lang, i) for i, codec in enumerate(codecs)
+        AudioTrack(file_obj.a_enc_cut.format(track_number=i), codec, lang) for i, codec in enumerate(codecs)
     ]
 
 

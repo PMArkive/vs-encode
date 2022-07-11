@@ -144,8 +144,8 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
             self._perform_cleanup(runner, deep_clean=deep_clean)
 
     def patch(
-        self, ranges: Range | List[Range], clean_up: bool = True,
-        /, *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None
+        self, /, ranges: Range | List[Range], clean_up: bool = True,
+        *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None
     ) -> None:
         """
         Set up the relevant settings for patching.
