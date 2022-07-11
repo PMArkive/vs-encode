@@ -49,4 +49,7 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = N
     if len(preset) == 1:
         preset.append(PresetBDWAV64)
 
+    if trims is None:
+        trims = [(None, None)]
+
     return FileInfo2(path, trims_or_dfs=trims, idx=idx, preset=preset, workdir=workdir)
