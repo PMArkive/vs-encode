@@ -29,7 +29,7 @@ class X264Custom(X264):
 
     def set_variable(self) -> Any:
         """Set a custom variable."""
-        return super().set_variable() | dict(thread=get_encoder_cores())
+        return super().set_variable() | {'thread': get_encoder_cores()}
 
 
 class X265Custom(X265):
@@ -52,4 +52,4 @@ class X265Custom(X265):
 
     def set_variable(self) -> Any:
         """Set a custom variable."""
-        return super().set_variable() | dict(thread=get_encoder_cores())
+        return super().set_variable() | {'thread': get_encoder_cores()}

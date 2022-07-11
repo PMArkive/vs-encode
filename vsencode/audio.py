@@ -88,7 +88,7 @@ def run_ap(
         raise ModuleNotFoundError("audio.run_ap: missing dependency 'bvsfunc'!")
 
     if 'silent' not in enc_overrides:
-        enc_overrides |= dict(silent=False)
+        enc_overrides |= {'silent': False}
 
     return video_source(
         in_file=file_obj.path.to_str(),
@@ -217,7 +217,7 @@ def iterate_encoder(
         xml_file = [xml_file] * tracks
 
     if encoder in (QAACEncoder, FDKAACEncoder):
-        overrides |= dict(xml_tag=xml_file)
+        overrides |= {'xml_tag': xml_file}
 
     return [encoder(file=file_obj, track=i, **overrides) for i in range(tracks)]  # type: ignore
 
