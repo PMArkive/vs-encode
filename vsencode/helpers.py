@@ -21,12 +21,13 @@ def get_encoder_cores() -> int:
 
 def get_lookahead(clip: vs.VideoNode) -> int:
     """
-    Return framerate numerator * 10 or 256, whichever is lower.
+    Return framerate numerator * 10 or 250, whichever is lower.
 
-    x265 limits the lookahead you can pass to 256.
+    x265 limits the lookahead you can pass to 250 max.
     """
     num = clip.fps.numerator * 10
-    return 256 if num >= 256 else num
+    ceil = 250
+    return ceil if num > ceil else num
 
 
 def verify_file_exists(path: FilePath) -> bool:
