@@ -5,17 +5,23 @@ import math
 import multiprocessing as mp
 from typing import List, Sequence
 
+import vapoursynth as vs
 from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
 
 from .types import FilePath, PresetBackup
 
-__all__ = ['FileInfo', 'get_encoder_cores', 'verify_file_exists']
+__all__ = ['FileInfo', 'get_encoder_cores', 'get_lookahead', 'verify_file_exists']
 
 
 def get_encoder_cores() -> int:
     """Return the amount of cores to auto-relocate to the encoder."""
     return math.ceil(mp.cpu_count() * 0.4)
+
+
+def get_lookahead(clip: vs.VideoNode) -> int:
+    num = clip.fps.numerator * 10
+    return 256 if num >= 256 else num
 
 
 def verify_file_exists(path: FilePath) -> bool:

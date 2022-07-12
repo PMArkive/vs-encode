@@ -4,7 +4,7 @@ from typing import Any
 
 from vardautomation import X264, X265
 
-from .helpers import get_encoder_cores
+from .helpers import get_encoder_cores, get_lookahead
 
 __all__ = ['X264Custom', 'X265Custom']
 
@@ -52,4 +52,7 @@ class X265Custom(X265):
 
     def set_variable(self) -> Any:
         """Set a custom variable."""
-        return super().set_variable() | {'thread': get_encoder_cores()}
+        return super().set_variable() | {
+            'thread': get_encoder_cores(),
+            'lookahead': get_lookahead(self.clip),
+        }
