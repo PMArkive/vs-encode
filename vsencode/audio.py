@@ -141,9 +141,9 @@ def iterate_ap_audio_files(
 
         xml_args = [('--tags', f'0:{str(xml)}') for xml in xml_file]
     else:
-        xml_args = None
+        xml_args = [None]
 
-    if xml_args and (diff := len(audio_files) - len(xml_args)):
+    if (diff := len(audio_files) - len(xml_args)):
         xml_args.extend(xml_args[-1:] * diff)
 
     if not track_channels:
@@ -163,7 +163,7 @@ def iterate_ap_audio_files(
     # TODO: Fix mypy complaining about arg_type. Can't pass anything to tid because that breaks shit
     # https://discord.com/channels/856381934052704266/856406641872207903/993925364281786399
     # The code still seems to work fine, though.
-    zipped = zip(audio_files, track_channels, xml_args, lang)  # type:ignore[arg-type]
+    zipped = zip(audio_files, track_channels, xml_args, lang)
     for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=1):
         a_tracks += [
             AudioTrack(
