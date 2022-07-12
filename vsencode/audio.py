@@ -141,7 +141,7 @@ def iterate_ap_audio_files(
 
         xml_args = [('--tags', f'0:{str(xml)}') for xml in xml_file]
     else:
-        xml_args = [None]
+        xml_args = [None]  # type:ignore[list-item]
 
     if (diff := len(audio_files) - len(xml_args)):
         xml_args.extend(xml_args[-1:] * diff)
