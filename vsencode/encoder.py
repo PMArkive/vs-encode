@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from typing import List
 
@@ -110,6 +111,14 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
         logger.success("Preparing to run encode...")
 
         self.check_in_chain(SetupStep.VIDEO, True)
+
+        cwd = self.file.workdir
+        for part in re.findall(self.file.name + "_part_[0-9]{1,3}", '\n'.join(os.listdir())):
+            if os.stat(f"{cwd}/{part}").st_size == 0:
+                try:
+                    os.remove(f"{cwd}/{part}")
+                except (FileNotFoundError, PermissionError):
+                    ...
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,
