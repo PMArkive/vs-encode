@@ -160,12 +160,15 @@ def iterate_ap_audio_files(
 
     a_tracks = list[AudioTrack]()
 
+    # TODO: Fix mypy complaining about arg_type. Can't pass anything to tid because that breaks shit
+    # https://discord.com/channels/856381934052704266/856406641872207903/993925364281786399
+    # The code still seems to work fine, though.
     zipped = zip(audio_files, track_channels, xml_args, lang)  # type:ignore[arg-type]
     for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=1):
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
-                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, *xml_arg
+                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, xml_arg  # type:ignore[arg-type]
             )
         ]
 
