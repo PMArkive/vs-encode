@@ -168,7 +168,7 @@ def iterate_ap_audio_files(
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
-                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, xml_arg  # type:ignore[arg-type]
+                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, xml_arg
             )
         ]
 
