@@ -165,10 +165,12 @@ def iterate_ap_audio_files(
     # The code still seems to work fine, though.
     zipped = zip(audio_files, track_channels, xml_args, lang)
     for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=1):
+        xml_arg = xml_arg if xml_arg is not None else {}
+
         a_tracks += [
             AudioTrack(
                 VPath(track).format(track_number=i),
-                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, xml_arg
+                f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, *xml_arg
             )
         ]
 
