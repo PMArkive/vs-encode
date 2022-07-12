@@ -8,7 +8,7 @@ from vardautomation import LosslessEncoder, VideoLanEncoder, VPath, logger
 
 from ..exceptions import NoLosslessVideoEncoderError, NoVideoEncoderError
 from ..generate import VEncSettingsGenerator
-from ..helpers import verify_file_exists
+from ..helpers import get_lookahead, verify_file_exists
 from ..types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
 from ..video import finalize_clip, get_lossless_video_encoder, get_video_encoder, validate_qp_clip
 from .base import BaseRunner, SetupStep
@@ -92,13 +92,17 @@ class VideoRunner(BaseRunner):
         if prefetch is None:
             with open(str(settings)) as f:
                 fr = f.read()
-                if "{keyint:d}" in fr:
-                    prefetch = round(self.clip.fps) * 10
-                elif "--keyint" in fr:  # I feel that there's a better way to do this, I'm just dumb
+                if any(x in fr for x in ["{keyint:d}", "{lookahead:d}"]):
+                    prefetch = get_lookahead(self.clip)
+                # I feel that there are better ways to do these, I'm just dumb
+                elif "--rc-lookahead" in fr:
+                    match = re.search(r"--rc-lookahead \d+", fr)
+                    prefetch = int(re.sub(r"[^\d+]", '', match.group(0))) if match else 0
+                elif "--keyint" in fr:
                     match = re.search(r"--keyint \d+", fr)
                     prefetch = int(re.sub(r"[^\d+]", '', match.group(0))) if match else 0
 
-        self.v_encoder.prefetch = prefetch or 0
+        self.v_encoder.prefetch = prefetch
         self.v_encoder.resumable = True
 
         logger.info(f"Encoding video using {encoder}.")
