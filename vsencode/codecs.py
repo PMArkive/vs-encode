@@ -17,14 +17,16 @@ class X264Custom(X264):
     `s` is used for strings, `d` is used for integers.
 
     For example:
-        --threads {thread:d}
+        --threads {thread:d} --colormatrix {matrix:s}
 
     The type is also given in the individdual explanation.
 
-    :key thread:        Automatically determine amount of threads for x265 to run. (d)
+    :key thread:        Automatically determine amount of threads for x264 to use. (d)
     :key matrix:        Automatically set the clip's color matrix from the clip's frameprops. (s)
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (s)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (s)
+    :key lookahead:     Automatically set the lookahead based on the framerate of the video. (d)
+                        Values above 120 are not recommended.
     """
 
     def set_variable(self) -> Any:
@@ -40,14 +42,16 @@ class X265Custom(X265):
     `s` is used for strings, `d` is used for integers.
 
     For example:
-        --numa-pools {thread:d}
+        --numa-pools {thread:d} --colormatrix {matrix:d}
 
-    The type is also given in the individdual explanation.
+    The type is also given in the individual explanation.
 
-    :key thread:        Automatically determine amount of threads for x265 to run. (d)
+    :key thread:        Automatically determine amount of threads for x265 to use. (d)
     :key matrix:        Automatically set the clip's color matrix from the clip's frameprops. (d)
     :key transfer:      Automatically set the clip's gamma transfer from the clip's frameprops. (d)
     :key primaries:     Automatically set the clip's color primaries from the clip's frameprops. (d)
+    :key lookahead:     Automatically set the lookahead based on the framerate of the video. (d)
+                        Values above 120 are not recommended. Max is 250 in the x265 spec.
     """
 
     def set_variable(self) -> Any:
