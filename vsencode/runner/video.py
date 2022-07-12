@@ -102,7 +102,7 @@ class VideoRunner(BaseRunner):
                     match = re.search(r"--keyint \d+", fr)
                     prefetch = int(re.sub(r"[^\d+]", '', match.group(0))) if match else 0
 
-        self.v_encoder.prefetch = prefetch
+        self.v_encoder.prefetch = prefetch or 0
         self.v_encoder.resumable = True
 
         logger.info(f"Encoding video using {encoder}.")
