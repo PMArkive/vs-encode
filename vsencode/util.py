@@ -20,7 +20,7 @@ __all__ = ['get_shader', 'get_timecodes_path', 'get_vs_core']
 
 
 @cache
-def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
+def get_shader(filename: str = '_shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
     """
     Obtain a shader file for libplacebo-based filtering.
 
