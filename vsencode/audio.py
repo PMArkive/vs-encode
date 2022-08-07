@@ -164,7 +164,7 @@ def iterate_ap_audio_files(
     # https://discord.com/channels/856381934052704266/856406641872207903/993925364281786399
     # The code still seems to work fine, though.
     zipped = zip(audio_files, track_channels, xml_args, lang)
-    for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=1):
+    for i, (track, channels, xml_arg, tlang) in enumerate(zipped, start=0):
         xml_arg = xml_arg if xml_arg is not None else {}
 
         a_tracks += [
