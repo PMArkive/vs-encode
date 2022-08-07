@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any, Dict, Tuple
 
 import vapoursynth as vs
-from lvsfunc.util import get_prop
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
 from vardefunc import finalise_clip
+from vskernels import get_prop
 from vsutil import get_depth
 
 from .codecs import X264Custom, X265Custom
