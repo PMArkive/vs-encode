@@ -1,31 +1,26 @@
-"""
-Useful utility functions for encoders.
-"""
+"""Useful utility functions for encoders."""
 from __future__ import annotations
 
+import ctypes
 import math
 import multiprocessing as mp
 import os
+import sys
 from functools import cache
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable
 
 import vapoursynth as vs
-from appdirs import AppDirs
 from vardautomation import VPath
 from vardautomation import get_vs_core as _get_vs_core
 
 from .generate import IniSetup
 
-__all__: List[str] = [
-    'get_shader',
-    'get_timecodes_path',
-    'get_vs_core',
-]
+__all__ = ['get_shader', 'get_timecodes_path', 'get_vs_core']
 
 
 @cache
-def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
+def get_shader(filename: str = '_shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
     """
     Obtain a shader file for libplacebo-based filtering.
 
@@ -39,7 +34,23 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
                         Default: '.shaders'
     """
     in_cwd = Path(os.path.join(os.getcwd(), filename))
-    mpv_dir = Path(AppDirs().user_data_dir).parents[0] / f"Roaming/mpv/shaders/{filename}"
+
+    if sys.platform == "win32":
+        buf = ctypes.create_unicode_buffer(1024)
+        ctypes.windll.shell32.SHGetFolderPathW(None, 28, None, 0, buf)
+
+        if any([ord(c) > 255 for c in buf]):
+            buf2 = ctypes.create_unicode_buffer(1024)
+            if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
+                buf = buf2
+
+        user_data_dir = os.path.normpath(buf.value)
+    elif sys.platform == 'darwin':
+        user_data_dir = os.path.expanduser('~/Library/Application Support/')
+    else:
+        user_data_dir = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
+
+    mpv_dir = Path(user_data_dir).parents[0] / f"Roaming/mpv/shaders/{filename}"
 
     if in_cwd.is_file():
         return str(in_cwd)
@@ -50,26 +61,24 @@ def get_shader(filename: str = '.shaders/FSRCNNX_x2_56-16-4-1.glsl') -> str:
 
 
 @cache
-def get_vs_core(threads: Iterable[int | None] = None,
-                max_cache_size: int | None = None,
-                reserve_core: bool = True) -> vs.Core:
-    """
-    Gets the VapourSynth singleton core for you through vardautomation with additional parameters.
-    """
-    if not threads:
+def get_vs_core(
+    threads: int | Iterable[int] | None = None, max_cache_size: int | None = None, reserve_core: bool = True
+) -> vs.Core:
+    """Get the VapourSynth singleton core for you through vardautomation with additional parameters."""
+    if isinstance(threads, int):
+        threads = range(0, threads)
+    elif not threads:
         threads_for_vs = math.ceil(mp.cpu_count() * 0.6)
-        threads = range(0, (threads_for_vs - 2) if reserve_core else range(0, threads_for_vs))
+        threads = range(0, threads_for_vs - 2 if reserve_core else 0)
 
     return _get_vs_core(threads, max_cache_size)
 
 
 @cache
 def get_timecodes_path(create_dir: bool = True) -> VPath:
-    """
-    Generates path for your timecodes file, based off the caller's filename.
-    """
+    """Generate path for your timecodes file, based off the caller's filename."""
     file_name = IniSetup().get_show_name()
-    tc_path = VPath(f".assets/{file_name[-1]}/{file_name[0]}_{file_name[-1]}_timecodes.txt")
+    tc_path = VPath(f"_assets/{file_name[-1]}/{file_name[0]}_{file_name[-1]}_timecodes.txt")
 
     if create_dir and not tc_path.parent.exists():
         os.makedirs(tc_path.parent, exist_ok=True)
