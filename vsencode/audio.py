@@ -11,7 +11,7 @@ from lvsfunc.types import Range
 from pymediainfo import MediaInfo
 from vardautomation import (
     JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter,
-    FDKAACEncoder, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, Trim, VPath, logger
+    FDKAACEncoder, FileInfo, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, Trim, VPath, logger
 )
 
 from .exceptions import MissingDependenciesError
@@ -54,10 +54,10 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
     if isinstance(obj, str):
         parsed = MediaInfo.parse(obj)
         media_info = MediaInfo(parsed) if isinstance(parsed, str) else parsed
-    elif isinstance(obj, FileInfo2):
+    elif isinstance(obj, (FileInfo, FileInfo2)):
         media_info = obj.media_info
     else:
-        raise ValueError("Obj is not a FileInfo2 object or a path!")
+        raise ValueError("Obj is not a FileInfo/FileInfo2 object or a path!")
 
     path_name = obj.path if isinstance(obj, FileInfo2) else obj
 
@@ -169,7 +169,7 @@ def iterate_ap_audio_files(
 
         a_tracks += [
             AudioTrack(
-                VPath(track).format(track_number=i),
+                VPath(track).format(track_number=str(i)),
                 f'{codec.upper()} {get_channel_layout_str(channels)}', tlang, i, *xml_arg
             )
         ]
@@ -241,7 +241,7 @@ def iterate_extractors(
             out_path = VPath(og_path[0] + r"_track_{track_number:s}" + og_path[1])
         file_obj.a_src_cut = out_path
 
-    return [extractor(file=file_obj, track_in=i, track_out=i, **overrides) for i in range(tracks)]  # type: ignore
+    return [extractor(file_obj, track_in=i, track_out=i, **overrides) for i in range(tracks)]  # type: ignore
 
 
 def iterate_tracks(
@@ -266,7 +266,8 @@ def iterate_tracks(
     assert len(codecs) == tracks, 'You need to specify codecs for all tracks!'
 
     return [
-        AudioTrack(file_obj.a_enc_cut.format(track_number=i), codec, lang) for i, codec in enumerate(codecs)
+        AudioTrack(file_obj.a_enc_cut.format(work_filename=file_obj.work_filename, track_number=str(i)),
+                   codec, lang) for i, codec in enumerate(codecs)
     ]
 
 

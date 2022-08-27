@@ -95,8 +95,9 @@ class AudioRunner(BaseRunner):
 
         audio_langs = self.a_lang.copy()
 
-        if len(audio_langs) < len(self.file.audios):
-            audio_langs += [audio_langs[-1]] * (len(self.file.audios) - len(audio_langs))
+        if hasattr(self.file, "audios"):
+            if len(audio_langs) < len(self.file.audios):
+                audio_langs += [audio_langs[-1]] * (len(self.file.audios) - len(audio_langs))
 
         ea_file = external_audio_file
 
@@ -152,11 +153,12 @@ class AudioRunner(BaseRunner):
                     if not file_copy.a_src_cut or not file_copy.a_enc_cut:
                         continue
 
-                    if not VPath(file_copy.a_src_cut.to_str().format(track_number=i)).exists():
+                    if not VPath(file_copy.a_src_cut.to_str().format(track_number=str(i))).exists():
                         file_copy.write_a_src_cut(index=i)
 
                     self.a_tracks += [
-                        AudioTrack(file_copy.a_enc_cut.format(track_number=i), original_codecs[i], audio_langs[i], i)
+                        AudioTrack(file_copy.a_enc_cut.format(track_number=str(i)), original_codecs[i],
+                                   audio_langs[i], i)
                     ]
 
                     if not all_tracks:
