@@ -138,6 +138,9 @@ class IniSetup:
         file_name_split = os.path.basename(file_name).split(key)
         file_name_split[-1] = os.path.splitext(file_name_split[-1])[0]
 
+        if hasattr(self, "show_name"):
+            file_name_split[0] = self.show_name
+
         if _parents > 1:
             try:  # Check if final split is the episode number or an NC.
                 final = file_name_split[-1]
