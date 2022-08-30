@@ -307,7 +307,7 @@ def get_channel_layout_str(channels: int) -> str:
     """Return a very basic channel layout picker for audio tracks."""
     match channels:
         case 2: return '2.0'
-        case 5: return '5.1'
+        case 5 | 6: return '5.1'
         case 1: return '1.0'
         case 7: return '7.1'
-        case _: raise ValueError("get_channel_layout_str: 'Current channel count unsupported!'")
+        case _: raise ValueError(f"get_channel_layout_str: 'Current channel count ({channels}) unsupported!'")
