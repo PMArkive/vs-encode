@@ -1,14 +1,12 @@
-import os
+from __future__ import annotations
+
 import subprocess as sp
-from collections import deque
-from typing import Any, cast
 
 import vapoursynth as vs
 from vsutil import is_image
 
-from ..types import FilePath
-from ..util import MPath
-from .types import IndexExists, VSIdxFunction
+from ..util import FilePath, MPath
+from .types import IndexFile, IndexingType, IndexType
 
 core = vs.core
 
@@ -22,72 +20,19 @@ def _check_has_nvidia() -> bool:
         return False
 
 
-def _get_dgidx() -> tuple[str, VSIdxFunction]:
-    """Return the dgindex idx as a string and the actual source filter."""
-    has_nv = _check_has_nvidia()
-
-    dgidx = 'DGIndexNV' if has_nv else 'DGIndex'
-
-    match has_nv:
-        case True: dgsrc = core.dgdecodenv.DGSource
-        case _: dgsrc = core.dgdecode.DGSource
-
-    return dgidx, dgsrc
-
-
-def _check_index_exists(path: FilePath) -> IndexExists:
+def _check_index_exists(path: FilePath) -> IndexFile | IndexType:
     """Check whether a lwi or dgi exists. Returns an IndexExists Enum."""
-    path = str(path)
+    path = MPath(path)
 
-    if path.endswith('.dgi'):
-        return IndexExists.PATH_IS_DGI
-    elif is_image(path):
-        return IndexExists.PATH_IS_IMG
-    elif MPath(f"{path}.dgi").exists():
-        return IndexExists.DGI_EXISTS
-    elif MPath(f"{path}.lwi").exists():
-        return IndexExists.LWI_EXISTS
-    return IndexExists.NONE
+    for itype in IndexingType:
+        if path.suffix == itype.value:
+            return IndexFile(itype, path.exists())
 
+    for itype in IndexingType:
+        if path.with_suffix(f'{path.suffix}{itype.value}').exists():
+            return IndexFile(itype, True)
 
-def _generate_dgi(path: str, idx: str) -> bool:
-    """Generate a dgi file using the given indexer and verify it exists."""
-    filename, _ = os.path.splitext(path)
-    output = f'{filename}.dgi'
+    if is_image(path):
+        return IndexType.IMAGE
 
-    if not os.path.exists(output):
-        try:
-            sp.run([idx, '-i', path, '-o', output, '-h'])
-        except sp.CalledProcessError:
-            return False
-
-    return os.path.exists(output)
-
-
-def _tail(filename: str, n: int = 10) -> tuple[int, float]:
-    """Return the last n lines of a file."""
-    with open(filename, "r") as f:
-        lines = deque(f, n)
-        lines = cast(deque[str], [line for line in lines if 'FILM' in line or 'ORDER' in line])
-
-        if len(lines) == 1:
-            return (int(lines[0].split(' ')[1]), 0.00)
-
-        return (int(lines.pop().split(" ")[1].replace("\n", "")),
-                float(lines.pop().split(" ")[0].replace("%", "")))
-
-
-def _load_dgi(path: str, film_thr: float, src_filter: VSIdxFunction,
-              order: int, film: float, **index_args: Any) -> vs.VideoNode:
-    """
-    Run the source filter on the given dgi.
-
-    If order > 0 and FILM % > 99%, it will automatically enable `fieldop=1`.
-    """
-    props = dict(dgi_order=order, dgi_film=film, dgi_fieldop=0, lvf_idx='DGIndex(NV)')
-
-    if 'fieldop' not in index_args and (order > 0 and film >= film_thr):
-        index_args['fieldop'] = 1
-        props |= dict(dgi_fieldop=1, _FieldBased=0)
-
-    return src_filter(path, **index_args).std.SetFrameProps(**props)
+    return IndexType.NONE

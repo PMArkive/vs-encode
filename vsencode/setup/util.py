@@ -1,25 +1,62 @@
-import os
+from __future__ import annotations
+
 import warnings
-from typing import Any, Sequence, cast
+from functools import partial
+from typing import TYPE_CHECKING, Any, Protocol, Sequence, cast, overload
 
 import vapoursynth as vs
 from pymediainfo import MediaInfo
-from vskernels import Bicubic, Kernel, Matrix, Primaries, Transfer, get_kernel, get_prop
-from vskernels.exceptions import UndefinedMatrixError
-from vskernels.types import MatrixT, PrimariesT, TransferT, MISSING
+from vskernels import (
+    MISSING, Bicubic, Kernel, Matrix, MatrixT, Primaries, PrimariesT, Transfer, TransferT, UndefinedMatrixError,
+    get_kernel, get_prop
+)
+from vsparsedvd import DGIndexNV  # type: ignore
 from vsutil import depth, get_depth, is_image
 
-from ..types import Range
-from .helpers import _check_index_exists, _generate_dgi, _get_dgidx, _load_dgi, _tail
-from .types import CHROMA_LOCATION, COLOR_RANGE, IndexExists
+from ..util import FilePath, MPath
+from .helpers import _check_index_exists
+from .types import CHROMA_LOCATION, COLOR_RANGE, IndexFile, IndexingType, IndexType, Range
 
 core = vs.core
 
 
-def index_clip(path: os.PathLike[str] | str, ref: vs.VideoNode | None = None,
-               film_thr: float = 99.0, force_lsmas: bool = False,
-               tail_lines: int = 4, kernel: Kernel | str = Bicubic(b=0, c=1/2),
-               **index_args: Any) -> vs.VideoNode:
+class IndexClipFunction(Protocol):
+    @overload
+    def __call__(
+        self,
+        *, ref: vs.VideoNode | None = None,
+        film_thr: float = 99.0, force_lsmas: bool = False,
+        tail_lines: int = 4, kernel: Kernel | str = Bicubic(b=0, c=1/2),
+        **index_args: Any
+    ) -> IndexClipFunction:
+        ...
+
+    @overload
+    def __call__(
+        self,
+        path: FilePath, /, ref: vs.VideoNode | None = None,
+        film_thr: float = 99.0, force_lsmas: bool = False,
+        tail_lines: int = 4, kernel: Kernel | str = Bicubic(b=0, c=1/2),
+        **index_args: Any
+    ) -> vs.VideoNode:
+        ...
+
+    def __call__(  # type: ignore
+        self,
+        path: FilePath = ..., /, ref: vs.VideoNode | None = None,
+        film_thr: float = 99.0, force_lsmas: bool = False,
+        tail_lines: int = 4, kernel: Kernel | str = Bicubic(b=0, c=1/2),
+        **index_args: Any
+    ) -> vs.VideoNode | IndexClipFunction:
+        ...
+
+
+def _index_clip(
+    path: FilePath = MISSING, /, ref: vs.VideoNode | None = None,  # type: ignore
+    film_thr: float = 99.0, force_lsmas: bool = False,
+    tail_lines: int = 4, kernel: Kernel | str = Bicubic(b=0, c=1/2),
+    debug: bool = False, **index_args: Any
+) -> vs.VideoNode | IndexClipFunction:
     """
     Index and load video clips for use in VapourSynth automatically.
 
@@ -72,44 +109,74 @@ def index_clip(path: os.PathLike[str] | str, ref: vs.VideoNode | None = None,
 
     :raises ValueError:     Something other than a path is passed to ``path``.
     """
-    if not isinstance(path, (os.PathLike, str)):
-        raise ValueError(f"source: 'Please input a path, not a {type(path).__class__.__name__}!'")
+    if path == MISSING:
+        return partial(  # type: ignore
+            index_clip, ref=ref, film_thr=film_thr, force_lsmas=force_lsmas,
+            tail_lines=tail_lines, kernel=kernel, **index_args
+        )
 
-    path = str(path)
-    film_thr = 100.0 if film_thr >= 100 else film_thr
+    MPath.check_file_exists(path)
+    path = MPath(path).to_str()
+
+    film_thr = float(min(100, film_thr))
 
     if path.startswith('file:///'):
         path = path[8::]
 
-    dgidx, dgsrc = _get_dgidx()
+    file_type = _check_index_exists(path)
+    file_idx_type = isinstance(file_type, IndexFile) and file_type.type or None
 
-    match IndexExists.LWI_EXISTS if force_lsmas else _check_index_exists(path):
-        case IndexExists.PATH_IS_DGI:
-            order, film = _tail(path, tail_lines)
-            clip = _load_dgi(path, film_thr, dgsrc, order, film, **index_args)
-        case IndexExists.PATH_IS_IMG:
-            clip = core.imwri.Read(path, **index_args).std.SetFrameProps(lvf_idx="imwri")
-        case IndexExists.LWI_EXISTS:
-            clip = core.lsmas.LWLibavSource(path, **index_args).std.SetFrameProps(lvf_idx="lsmas")
-        case IndexExists.DGI_EXISTS:
-            order, film = _tail(f"{path}.dgi", tail_lines)
-            clip = _load_dgi(f"{path}.dgi", film_thr, dgsrc, order, film, **index_args)
-        case _:
-            filename, _ = os.path.splitext(path)
-            dgi_file = f"{filename}.dgi"
+    debug_prop = ''
+    props = dict[str, Any]()
 
-            dgi = _generate_dgi(path, dgidx)
+    if force_lsmas or file_idx_type is IndexingType.LWI:
+        clip = core.lsmas.LWLibavSource(path, **index_args)
+        debug_prop = 'lsmas'
+    elif file_type is IndexType.IMAGE:
+        clip = core.imwri.Read(path, **index_args)
+        debug_prop = 'imwri'
+    elif file_idx_type is IndexingType.DGI:
+        try:
+            indexer = DGIndexNV()
 
-            if not dgi:
-                warnings.warn(f"index_clip: 'Unable to index using {dgidx}! Falling back to lsmas...'")
-                clip = core.lsmas.LWLibavSource(path, **index_args).std.SetFrameProps(lvf_idx="lsmas")
-            else:
-                order, film = _tail(dgi_file, tail_lines)
-                clip = _load_dgi(dgi_file, film_thr, dgsrc, order, film, **index_args)
+            idx_path = indexer.index([path], False, False)[0]
+
+            idx_info = indexer.get_info(idx_path, 0).footer
+
+            props |= dict(
+                dgi_fieldop=0,
+                dgi_order=idx_info.order,
+                dgi_film=idx_info.film
+            )
+
+            indexer_kwargs = dict[str, Any]()
+            if idx_info.film >= film_thr:
+                indexer_kwargs |= dict(fieldop=1)
+                props |= dict(dgi_fieldop=1, _FieldBased=0)
+
+            clip = indexer.vps_indexer(idx_path, **indexer_kwargs)
+            debug_prop = 'DGIndexNV'
+        except Exception as e:
+            warnings.warn(
+                f"index_clip: 'Unable to index using DGIndexNV! Falling back to lsmas...'\n\t{e}"
+            )
+
+            return _index_clip(
+                path, ref, force_lsmas=True, kernel=kernel, debug=debug, **index_args
+            )
+
+    if debug and debug_prop:
+        clip = clip.std.SetFrameProps(idx_used=debug_prop)
 
     if ref:
         return match_clip(clip, ref, length=is_image(path), kernel=kernel)
     return clip
+
+
+if TYPE_CHECKING:
+    index_clip: IndexClipFunction = ...  # type: ignore
+else:
+    index_clip = _index_clip
 
 
 def init_clip(clip: vs.VideoNode,
@@ -267,9 +334,10 @@ def normalize_ranges(clip: vs.VideoNode, ranges: Range | list[Range]) -> Sequenc
             start = r
             end = r
 
-        if start < 0:  # type:ignore[Operator]
+        if start < 0:
             start = clip.num_frames - 1 + start
-        if end < 0:  # type:ignore[Operator]
+
+        if end < 0:
             end = clip.num_frames - 1 + end
 
         out.append((start, end))
@@ -296,13 +364,13 @@ def match_clip(clip: vs.VideoNode, ref: vs.VideoNode,
 
     :return:            Clip that matches the ref clip in format.
     """
-    if isinstance(kernel, str):
-        kernel = get_kernel(kernel)()
+    kernel = get_kernel(kernel)()
 
     clip = clip * ref.num_frames if length else clip
     clip = kernel.scale(clip, ref.width, ref.height) if dimensions else clip
 
     if vformat:
+        assert ref.format
         clip = kernel.resample(clip, format=ref.format, matrix=Matrix.from_video(ref))
 
     if matrices:
@@ -311,6 +379,7 @@ def match_clip(clip: vs.VideoNode, ref: vs.VideoNode,
         clip = clip.std.SetFrameProps(
             _Matrix=get_prop(ref_frame, '_Matrix', int),
             _Transfer=get_prop(ref_frame, '_Transfer', int),
-            _Primaries=get_prop(ref_frame, '_Primaries', int))
+            _Primaries=get_prop(ref_frame, '_Primaries', int)
+        )
 
     return clip.std.AssumeFPS(fpsnum=ref.fps.numerator, fpsden=ref.fps.denominator)

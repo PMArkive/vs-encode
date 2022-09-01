@@ -1,17 +1,15 @@
-from ..types import FilePath
-from ..setup.source import Source
-import vapoursynth as vs
+from __future__ import annotations
+from dataclasses import dataclass
+
+from ..util import FilePath
 
 
+@dataclass
 class BaseTrack:
     """Base Class all tracks inherit from."""
 
     path: FilePath
-    name: str
-
-    def __init__(self, file: FilePath, name: str = ""):
-        self.file = file
-        self.name = name
+    name: str = ''
 
 
 class VideoTrack(BaseTrack):

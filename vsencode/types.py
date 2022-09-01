@@ -1,26 +1,14 @@
-import os
-from pathlib import Path
-from typing import Callable, Protocol, TypeVar
+from __future__ import annotations
 
-from vapoursynth import VideoNode
+from typing import Any, Callable, ParamSpec, TypeVar
 
-__all__: list[str] = ["_Flavour", "FilePath", "F"]
+__all__ = [
+    'F',
+    'P', 'R'
+]
 
 
 # Function Type
-F = TypeVar("F", bound=Callable)  # type:ignore[type-arg]
-
-
-class _Flavour(Protocol):
-    """Flavour for MPath"""
-
-    sep: str
-    altsep: str
-
-
-# PathLikes basically
-FilePath = os.PathLike[str] | Path | str
-
-# source.Source typing
-Trim = tuple[int | None, int | None]
-Range = int | None | Trim
+F = TypeVar('F', bound=Callable[..., Any])
+P = ParamSpec('P')
+R = TypeVar('R')

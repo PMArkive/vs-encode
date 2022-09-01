@@ -1,8 +1,10 @@
-import json
-from typing import Any, cast
+from __future__ import annotations
+from copy import deepcopy
 
-from ..types import FilePath
-from ..util import MPath
+import json
+from typing import Any
+
+from ..util import FilePath, MPath
 
 
 class Config:
@@ -18,7 +20,7 @@ class Config:
 
         :param name:        Name for the file.
         """
-        self.path = f"{MPath().cwd()}/{name}.json"
+        self.path = (MPath().cwd() / name).with_suffix('.json')
 
         if not MPath(self.path).exists():
             default_settings = {
@@ -41,13 +43,4 @@ class Config:
                 setattr(self, key, self.settings[key])
 
     def get_settings(self) -> dict[str, Any]:
-        values = {}
-
-        for key in self.settings:
-            if isinstance(self.settings[key], dict):
-                for k in self.settings[key]:
-                    values |= {k: self.settings[key][k]}
-            else:
-                values |= {key: self.settings[key]}
-
-        return values
+        return deepcopy(self.settings)

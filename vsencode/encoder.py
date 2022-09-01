@@ -1,9 +1,10 @@
-import os
-from pathlib import Path
+from __future__ import annotations
+
+from .util import FilePath, MPath
 
 
 class BaseEncoder:
-    file: Path
+    file: MPath
 
-    def __init__(self, file: os.PathLike[str]) -> None:
-        self.file = Path(file)
+    def __init__(self, file: FilePath) -> None:
+        self.file = MPath(file)

@@ -1,16 +1,15 @@
-import os
+from __future__ import annotations
+
+import inspect
 import sys
 from pprint import pformat
-from typing import Sequence, cast, Any
-import inspect
+from typing import Any, cast
 
 import vapoursynth as vs
 from pymediainfo import MediaInfo
-from vskernels import Matrix
 
-from ..helpers import check_file_exists
-from ..types import FilePath, Range, Trim
-from ..util import MPath
+from .types import Range, Trim
+from ..util import MPath, FilePath
 from .types import VSIdxFunction
 from .util import index_clip, init_clip, normalize_ranges
 
@@ -44,7 +43,7 @@ class Source:
                                 from functools import partial
                                 from lvsfunc.misc import source
 
-                                Source("PATH", indexer=partial(source, force_lsmas=True))
+                                Source("PATH", indexer=source(force_lsmas=True))
 
                             Indexer MUST be a callable that expects a string and outputs a VideoNode.
         :param workdir:     Work directory of the project. Defaults to the directory the script is called in.
@@ -57,7 +56,7 @@ class Source:
         if path.startswith('file:///'):
             path = path[8::]
 
-        check_file_exists(path)
+        MPath.check_file_exists(path)
 
         self.path = MPath(path)
         self.path_without_ext = self.path.with_suffix('')
