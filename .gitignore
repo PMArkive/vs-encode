@@ -10,3 +10,10 @@
 /tests/output/*
 build/
 dist/
+
+# Additional files used for testing
+test.py
+*.dgi
+*.log
+*.lwi
+*.mkv
