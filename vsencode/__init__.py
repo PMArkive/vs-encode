@@ -1,6 +1,5 @@
 """
-    vs-encode, an extensive wrapper around vardautomation
-    to help make it easier to digest for newer video encoders.
+    vs-encode, an extensive module to help run encodes straight from your script.
 
     If you spot any issues, please don't hesitate to send in a Pull Request
     or reach out to me on Discord (LightArrowsEXE#0476)!
@@ -10,20 +9,18 @@
 
 # flake8: noqa
 
-from vardautomation import VPath
-from vardautomation.language import *
+from vardautomation import FileInfo
 
-from . import encoder, exceptions, generate, helpers, presets, templates, types, util
+from .setup import *
 from .encoder import *
-from .exceptions import *
-from .generate import *
-from .helpers import FileInfo
-from .presets import *
-from .templates import *
+from .runner import *
+from .helpers import *
 from .types import *
 from .util import *
 
-# Aliases
-load_video = FileInfo
-src = FileInfo
-source = FileInfo
+# Remove some keys to avoid confusion
+keys = ["source"]
+
+for key in keys:
+    if key in globals():
+        del globals()[key]
