@@ -118,6 +118,7 @@ def _index_clip(
     MPath.check_file_exists(path)
     path = MPath(path).to_str()
 
+    clip = None
     film_thr = float(min(100, film_thr))
 
     if path.startswith('file:///'):
@@ -161,9 +162,8 @@ def _index_clip(
                 f"index_clip: 'Unable to index using DGIndexNV! Falling back to lsmas...'\n\t{e}"
             )
 
-            return _index_clip(
-                path, ref, force_lsmas=True, kernel=kernel, debug=debug, **index_args
-            )
+    if clip is None:
+        return _index_clip(path, ref, film_thr, True, tail_lines, kernel, debug, **index_args)
 
     if debug and debug_prop:
         clip = clip.std.SetFrameProps(idx_used=debug_prop)
