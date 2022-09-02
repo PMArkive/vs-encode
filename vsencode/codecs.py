@@ -81,5 +81,5 @@ class X265Custom(X265):
             'sarden': sar[0],
             'sarnum': sar[1],
             'lookahead': get_lookahead(self.clip),
-            'crops': f"{get_prop(self.clip, '_crops', str, default='0,0,0,0')} --overscan crop"
+            'crops': f"{get_prop(self.clip, '_crops', str, default='0,0,0,0')} --overscan crop"  # type:ignore
         }
