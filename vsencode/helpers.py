@@ -8,10 +8,19 @@ from typing import List, Sequence
 import vapoursynth as vs
 from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
+from vskernels import get_prop
 
 from .types import FilePath, PresetBackup
 
-__all__ = ['FileInfo', 'get_encoder_cores', 'get_lookahead', 'verify_file_exists']
+__all__ = [
+    'FileInfo',
+    'get_encoder_cores',
+    'get_lookahead',
+    'get_range_x264',
+    'get_range_x265',
+    'get_sar',
+    'verify_file_exists',
+]
 
 
 def get_encoder_cores() -> int:
@@ -26,7 +35,28 @@ def get_lookahead(clip: vs.VideoNode, ceil: int = 120) -> int:
     x265 limits the lookahead you can pass to 250 max.
     It's not recommended to go above 120.
     """
-    return min([clip.fps.numerator * 10, ceil])
+    return min([clip.fps.numerator * 5, ceil])
+
+
+def get_sar(clip: vs.VideoNode) -> tuple[int, int]:
+    """Return the SAR from the clip."""
+    return get_prop(clip, "_SARDen", int), get_prop(clip, "_SARnum", int)
+
+
+def get_range_x264(clip: vs.VideoNode) -> str:
+    """Return the color range from the clip."""
+    match get_prop(clip, "_ColorRange", int):
+        case 0: return "pc"
+        case 1: return "tv"
+        case _: raise ValueError("Unknown color range in clip's props.")
+
+
+def get_range_x265(clip: vs.VideoNode) -> str:
+    """Return the color range from the clip."""
+    match get_prop(clip, "_ColorRange", int):
+        case 0: return "full"
+        case 1: return "limited"
+        case _: raise ValueError("Unknown color range in clip's props.")
 
 
 def verify_file_exists(path: FilePath) -> bool:
