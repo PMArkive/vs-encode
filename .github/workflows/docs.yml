@@ -1,6 +1,17 @@
-name: docs
+name: Build documentation
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - "**.py"
+      - "**.rst"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "**.py"
+      - "**.rst"
+
 
 jobs:
   docs:
@@ -15,5 +26,5 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install -r docs/requirements.txt
-      - name: Running sphinx
-        run: python3 setup.py build_sphinx
+      - name: Building sphinx
+        run: python3 setup.py build_sphinx -W --keep-going
