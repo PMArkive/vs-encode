@@ -10,7 +10,7 @@ from vskernels import (
     MISSING, Bicubic, Kernel, Matrix, MatrixT, Primaries, PrimariesT, Transfer, TransferT, UndefinedMatrixError,
     get_kernel, get_prop
 )
-from vsparsedvd import DGIndexNV  # type: ignore
+from vsparsedvd import DGIndexNV, SPath  # type: ignore
 from vsutil import depth, get_depth, is_image
 
 from ..util import FilePath, MPath
@@ -112,7 +112,7 @@ def _index_clip(
     if path == MISSING:
         return partial(  # type: ignore
             index_clip, ref=ref, film_thr=film_thr, force_lsmas=force_lsmas,
-            tail_lines=tail_lines, kernel=kernel, **index_args
+            tail_lines=tail_lines, kernel=kernel, debug=debug, **index_args
         )
 
     MPath.check_file_exists(path)
@@ -127,22 +127,23 @@ def _index_clip(
     file_type = _check_index_exists(path)
     file_idx_type = isinstance(file_type, IndexFile) and file_type.type or None
 
-    debug_prop = ''
     props = dict[str, Any]()
+    debug_props = dict[str, Any]()
 
     if force_lsmas or file_idx_type is IndexingType.LWI:
         clip = core.lsmas.LWLibavSource(path, **index_args)
-        debug_prop = 'lsmas'
+        debug_props |= dict(idx_used='lsmas')
     elif file_type is IndexType.IMAGE:
         clip = core.imwri.Read(path, **index_args)
-        debug_prop = 'imwri'
-    elif file_idx_type is IndexingType.DGI:
+        debug_props |= dict(idx_used='imwri')
+    elif file_idx_type is IndexingType.DGI or file_type is IndexType.NONE:
         try:
             indexer = DGIndexNV()
 
-            idx_path = indexer.index([path], False, False)[0]
+            if not path.endswith(".dgi"):
+                path = indexer.index([SPath(path)], False, False)[0]
 
-            idx_info = indexer.get_info(idx_path, 0).footer
+            idx_info = indexer.get_info(path, 0).footer
 
             props |= dict(
                 dgi_fieldop=0,
@@ -155,18 +156,19 @@ def _index_clip(
                 indexer_kwargs |= dict(fieldop=1)
                 props |= dict(dgi_fieldop=1, _FieldBased=0)
 
-            clip = indexer.vps_indexer(idx_path, **indexer_kwargs)
-            debug_prop = 'DGIndexNV'
+            clip = indexer.vps_indexer(path, **indexer_kwargs)
+            debug_props |= dict(idx_used='DGIndexNV')
         except Exception as e:
-            warnings.warn(
-                f"index_clip: 'Unable to index using DGIndexNV! Falling back to lsmas...'\n\t{e}"
-            )
+            warnings.warn(f"index_clip: 'Unable to index using DGIndexNV! Falling back to lsmas...'\n\t{e}",
+                          RuntimeWarning)
 
     if clip is None:
         return _index_clip(path, ref, film_thr, True, tail_lines, kernel, debug, **index_args)
 
-    if debug and debug_prop:
-        clip = clip.std.SetFrameProps(idx_used=debug_prop)
+    clip = clip.std.SetFrameProps(**props)
+
+    if debug:
+        clip = clip.std.SetFrameProps(**debug_props)
 
     if ref:
         return match_clip(clip, ref, length=is_image(path), kernel=kernel)
