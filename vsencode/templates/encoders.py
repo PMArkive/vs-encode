@@ -11,7 +11,7 @@ x264_defaults: str = """-o {clip_output:s} - --demuxer y4m --frames {frames:d} -
 --output-depth {bits:d}"""
 
 x265_defaults: str = """-o {clip_output:s} - --y4m --frames {frames:d} --numa-pools {thread:d}
---fps {fps_num:d}/{fps_den:d} --videoformat ntsc --range {range:s}
+--fps {fps_num:d}/{fps_den:d} --videoformat ntsc --range limited
 --colormatrix {matrix:d} --colorprim {primaries:d} --transfer {transfer:d}
 --min-luma {min_luma:d} --max-luma {max_luma:d} --chromaloc {chromaloc:d}
 --sar {sarden:d}/{sarnum:d}

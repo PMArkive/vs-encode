@@ -5,7 +5,7 @@ from typing import Any
 from vardautomation import X264, X265
 from vskernels import get_prop
 
-from .helpers import get_encoder_cores, get_lookahead, get_sar, get_range_x264, get_range_x265
+from .helpers import get_encoder_cores, get_lookahead, get_sar
 
 __all__ = ['X264Custom', 'X265Custom']
 
@@ -23,7 +23,6 @@ class X264Custom(X264):
     The type is also given in the individdual explanation.
 
     :key thread:            Automatically determine amount of threads for x264 to use. (d)
-    :key range:             Automatically determine the clip's color range from the clip's frameprops. (s)
     :key matrix:            Automatically determine the clip's color matrix from the clip's frameprops. (s)
     :key transfer:          Automatically determine the clip's gamma transfer from the clip's frameprops. (s)
     :key primaries:         Automatically determine the clip's color primaries from the clip's frameprops. (s)
@@ -39,7 +38,6 @@ class X264Custom(X264):
 
         return super().set_variable() | {
             'thread': get_encoder_cores(),
-            'range': get_range_x264(self.clip),
             'sarden': sar[0],
             'sarnum': sar[1],
             'lookahead': get_lookahead(self.clip),
@@ -59,7 +57,6 @@ class X265Custom(X265):
     The type is also given in the individual explanation.
 
     :key thread:            Automatically determine amount of threads for x265 to use. (d)
-    :key range:             Automatically determine the clip's color range from the clip's frameprops. (s)
     :key matrix:            Automatically determine the clip's color matrix from the clip's frameprops. (d)
     :key transfer:          Automatically determine the clip's gamma transfer from the clip's frameprops. (d)
     :key primaries:         Automatically determine the clip's color primaries from the clip's frameprops. (d)
@@ -80,10 +77,9 @@ class X265Custom(X265):
 
         return super().set_variable() | {
             'thread': get_encoder_cores(),
-            'range': get_range_x265(self.clip),
             'chromaloc': get_prop(self.clip, '_ChromaLocation', int),
             'sarden': sar[0],
             'sarnum': sar[1],
             'lookahead': get_lookahead(self.clip),
-            'crops': f"{get_prop(self.clip, '_crops', str)} --overscan crop"
+            'crops': f"{get_prop(self.clip, '_crops', str, default='0,0,0,0')} --overscan crop"
         }

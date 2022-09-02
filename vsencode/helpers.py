@@ -16,8 +16,6 @@ __all__ = [
     'FileInfo',
     'get_encoder_cores',
     'get_lookahead',
-    'get_range_x264',
-    'get_range_x265',
     'get_sar',
     'verify_file_exists',
 ]
@@ -40,23 +38,7 @@ def get_lookahead(clip: vs.VideoNode, ceil: int = 120) -> int:
 
 def get_sar(clip: vs.VideoNode) -> tuple[int, int]:
     """Return the SAR from the clip."""
-    return get_prop(clip, "_SARDen", int), get_prop(clip, "_SARnum", int)
-
-
-def get_range_x264(clip: vs.VideoNode) -> str:
-    """Return the color range from the clip."""
-    match get_prop(clip, "_ColorRange", int):
-        case 0: return "pc"
-        case 1: return "tv"
-        case _: raise ValueError("Unknown color range in clip's props.")
-
-
-def get_range_x265(clip: vs.VideoNode) -> str:
-    """Return the color range from the clip."""
-    match get_prop(clip, "_ColorRange", int):
-        case 0: return "full"
-        case 1: return "limited"
-        case _: raise ValueError("Unknown color range in clip's props.")
+    return get_prop(clip, "_SARDen", int), get_prop(clip, "_SARNum", int)
 
 
 def verify_file_exists(path: FilePath) -> bool:
