@@ -26,7 +26,7 @@ def get_encoder_cores() -> int:
     return math.ceil(mp.cpu_count() * 0.4)
 
 
-def get_lookahead(clip: vs.VideoNode, ceil: int = 120) -> int:
+def get_lookahead(clip: vs.VideoNode, ceil: int = 72) -> int:
     """
     Return framerate numerator * 10 or ceil, whichever is lower.
 
