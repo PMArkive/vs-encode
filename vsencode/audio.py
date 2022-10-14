@@ -6,8 +6,7 @@ from fractions import Fraction
 from typing import Any, List, Sequence, Tuple, Type
 
 import vapoursynth as vs
-from lvsfunc import normalize_ranges
-from lvsfunc.types import Range
+from vstools import normalize_ranges, FrameRangeN
 from pymediainfo import MediaInfo
 from vardautomation import (
     JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter,
@@ -18,7 +17,7 @@ from .exceptions import MissingDependenciesError
 from .types import PresetBackup
 
 
-def resolve_ap_trims(trims: Range | List[Range] | None, clip: vs.VideoNode) -> List[List[Range]]:
+def resolve_ap_trims(trims: FrameRangeN | List[FrameRangeN] | None, clip: vs.VideoNode) -> List[List[FrameRangeN]]:
     """Convert list[tuple] into list[list] (begna pls)."""
     if trims is None:
         return [[0, clip.num_frames-1]]
@@ -77,7 +76,7 @@ def get_track_info(obj: FileInfo2 | str, all_tracks: bool = False) -> Tuple[List
 
 def run_ap(
     file_obj: FileInfo2, is_aac: bool = True,
-    trims: Range | List[Range] | None = None,
+    trims: FrameRangeN | List[FrameRangeN] | None = None,
     fps: Fraction | None = None, **enc_overrides: Any
 ) -> List[str]:
     """Run bvsfunc.AudioProcessor."""

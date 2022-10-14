@@ -4,9 +4,7 @@ from typing import Any, Dict, Tuple
 
 import vapoursynth as vs
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
-from vardefunc import finalise_clip
-from vskernels import get_prop
-from vsutil import get_depth
+from vstools import get_depth, get_prop, finalise_clip
 
 from .codecs import X264Custom, X265Custom
 from .exceptions import FrameLengthMismatch, NoVideoEncoderError

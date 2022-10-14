@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 
 import vapoursynth as vs
-from lvsfunc import check_variable
+from vstools import check_variable
 from vardautomation import JAPANESE, FileInfo2, Lang, logger
 
 from ..exceptions import AlreadyInChainError, NotEnoughValuesError

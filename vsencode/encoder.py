@@ -6,7 +6,7 @@ import shutil
 from typing import List
 
 from vardautomation import MatroskaFile, RunnerConfig, SelfRunner, Track, VideoTrack, VPath, logger, patch
-from vardefunc.types import Range
+from vstools import FrameRangeN
 
 from .helpers import verify_file_exists
 from .runner import AudioRunner, ChaptersRunner, SetupStep, VideoRunner
@@ -153,7 +153,7 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
             self._perform_cleanup(runner, deep_clean=deep_clean)
 
     def patch(
-        self, /, ranges: Range | List[Range], clean_up: bool = True,
+        self, /, ranges: FrameRangeN | List[FrameRangeN], clean_up: bool = True,
         *, external_file: os.PathLike[str] | str | None = None, output_filename: str | None = None
     ) -> None:
         """

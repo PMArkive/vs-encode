@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 import vapoursynth as vs
 from vardautomation import FileInfo2
-from vardefunc.types import Range
+from vstools import FrameRangeN
 
 from .encoder import EncodeRunner
 from .types import AUDIO_CODEC, VIDEO_CODEC
@@ -17,7 +17,7 @@ def encode(
     file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
     video_enc: VIDEO_CODEC = 'x264', audio_enc: AUDIO_CODEC = 'qaac',
     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-    patch_ranges: Range | List[Range] = [],
+    patch_ranges: FrameRangeN | List[FrameRangeN] = [],
     encoder_credit: str = '', clean_up: bool = True,
     video_args: Dict[str, Any] = {},
     audio_args: Dict[str, Any] = {},
@@ -73,7 +73,7 @@ def encode(
 def x264_aac_preset(
     file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-    patch_ranges: Range | List[Range] = [],
+    patch_ranges: FrameRangeN | List[FrameRangeN] = [],
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
@@ -87,7 +87,7 @@ def x264_aac_preset(
 def x264_flac_preset(
     file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-    patch_ranges: Range | List[Range] = [],
+    patch_ranges: FrameRangeN | List[FrameRangeN] = [],
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
@@ -101,7 +101,7 @@ def x264_flac_preset(
 def x265_aac_preset(
     file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-    patch_ranges: Range | List[Range] = [],
+    patch_ranges: FrameRangeN | List[FrameRangeN] = [],
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """
@@ -115,7 +115,7 @@ def x265_aac_preset(
 def x265_flac_preset(
     file: FileInfo2, clip: vs.VideoNode, patch: bool = False,
     zones: Dict[Tuple[int, int], Dict[str, Any]] | None = None,
-    patch_ranges: Range | List[Range] = [],
+    patch_ranges: FrameRangeN | List[FrameRangeN] = [],
     encoder_credit: str = '', clean_up: bool = True
 ) -> None:
     """

@@ -8,7 +8,7 @@ from typing import List, Sequence
 import vapoursynth as vs
 from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
-from vskernels import get_prop
+from vstools import get_prop
 
 from .types import FilePath, PresetBackup
 

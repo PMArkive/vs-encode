@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from vardautomation import X264, X265
-from vskernels import get_prop
+from vstools import get_prop
 
 from .helpers import get_encoder_cores, get_lookahead, get_sar
 
