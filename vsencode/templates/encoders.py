@@ -3,7 +3,7 @@
 x264_defaults: str = """-o {clip_output:s} - --demuxer y4m --frames {frames:d} --threads {thread:d}
 --fps {fps_num:d}/{fps_den:d} --videoformat ntsc --range tv
 --colormatrix {matrix:s} --colorprim {primaries:s} --transfer {transfer:s}
---sar {sarden:d}:{sarnum:d}
+--sar {sarnum:d}:{sarden:d}
 --preset placebo --crf 13 --deblock -1:-1 --min-keyint {min_keyint:d} --keyint {keyint:d} --ref 6 --bframes 8
 --aq-mode 3 --aq-strength 0.69 --qcomp 0.70 --rc-lookahead {lookahead:d}
 --psy-rd 1.0:0.0 --trellis 2 --qpstep 2 --me umh --merange 32 --no-mbtree
@@ -14,7 +14,7 @@ x265_defaults: str = """-o {clip_output:s} - --y4m --frames {frames:d} --numa-po
 --fps {fps_num:d}/{fps_den:d} --videoformat ntsc --range limited
 --colormatrix {matrix:d} --colorprim {primaries:d} --transfer {transfer:d}
 --min-luma {min_luma:d} --max-luma {max_luma:d} --chromaloc {chromaloc:d}
---sar {sarden:d}:{sarnum:d}
+--sar {sarnum:d}:{sarden:d}
 --preset slow --crf 14 --deblock=-2:-2 --min-keyint {min_keyint:d} --keyint {keyint:d} --ref 5 --bframes 8
 --aq-mode 3 --aq-strength 0.69 --qcomp 0.70 --cbqpoffs -2 --crqpoffs -2 --rc-lookahead {lookahead:d}
 --rd 5 --rdoq-level 2 --psy-rd 2.0 --psy-rdoq 2.0 --no-open-gop --no-cutree --qpstep 2
