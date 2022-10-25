@@ -4,23 +4,12 @@ from typing import Any, Dict, Tuple
 
 import vapoursynth as vs
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
-from vstools import get_depth, get_prop, finalise_clip
+from vstools import finalize_clip
 
 from .codecs import X264Custom, X265Custom
 from .exceptions import FrameLengthMismatch, NoVideoEncoderError
 from .helpers import get_encoder_cores, verify_file_exists
 from .types import LOSSLESS_VIDEO_ENCODER, VIDEO_CODEC
-
-
-def finalize_clip(clip: vs.VideoNode, bits: int = 10, tv_range: bool = True) -> vs.VideoNode:
-    """Prepare the clip for the final output."""
-    if get_prop(clip.get_frame(0), '_ColorRange', int) == 0:
-        tv_range = False
-
-    if get_depth(clip) == 8:
-        bits = 8
-
-    return finalise_clip(clip, bits, tv_range)
 
 
 def get_video_encoder(
