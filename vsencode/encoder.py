@@ -114,11 +114,11 @@ class EncodeRunner(AudioRunner, VideoRunner, ChaptersRunner):
 
         cwd = self.file.workdir
         for part in re.findall(self.file.name + "_part_[0-9]{1,3}", '\n'.join(os.listdir())):
-            if os.stat(f"{cwd}/{part}").st_size == 0:
-                try:
+            try:
+                if os.stat(f"{cwd}/{part}").st_size == 0:
                     os.remove(f"{cwd}/{part}")
-                except (FileNotFoundError, PermissionError):
-                    ...
+            except (FileNotFoundError, PermissionError):
+                ...
 
         config = RunnerConfig(
             v_encoder=self.v_encoder,
