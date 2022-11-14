@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import math
 import multiprocessing as mp
-from typing import List, Sequence
+from typing import Any, Sequence
 
 import vapoursynth as vs
 from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
-from vstools import get_prop
+from vardautomation.exception import VSColourRangeError
+from vstools import get_prop, get_depth
 
 from .types import FilePath, PresetBackup
 
@@ -18,6 +19,7 @@ __all__ = [
     'get_lookahead',
     'get_sar',
     'verify_file_exists',
+    'get_range',
 ]
 
 
@@ -41,12 +43,18 @@ def get_sar(clip: vs.VideoNode) -> tuple[int, int]:
     return get_prop(clip, "_SARDen", int), get_prop(clip, "_SARNum", int)
 
 
+def get_range(clip: vs.VideoNode) -> int:
+    """Return the color range from the clip."""
+    # TODO: Double-check ranges for x264 match those of x265. See `get_color_range` also. Convert to enum instead?
+    return int(not bool(get_prop(clip, "_ColorRange", int)))
+
+
 def verify_file_exists(path: FilePath) -> bool:
     """Verify that a given file exists."""
     return VPath(path).exists()
 
 
-def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = None,
+def FileInfo(path: AnyPath, trims: list[Trim | DuplicateFrame] | Trim | None = None,
              idx: VPSIdx | None = source, preset: Preset | Sequence[Preset] | None = PresetBackup,
              *, workdir: AnyPath = VPath().cwd()) -> FileInfo2:
     """
@@ -76,3 +84,61 @@ def FileInfo(path: AnyPath, trims: List[Trim | DuplicateFrame] | Trim | None = N
         trims = [(None, None)]
 
     return FileInfo2(path, trims_or_dfs=trims, idx=idx, preset=preset, workdir=workdir)
+
+
+def get_color_range(clip: vs.VideoNode, params: list[str]) -> tuple[int, int]:
+    """
+    Get the luma colour range specified in the params.
+    Fallback to the clip properties.
+
+    Taken from Vardautomation, updated to support a {range:d} input.
+
+    :param params:              Settings of the encoder.
+    :param clip:                Source
+    :return:                    A tuple of min_luma and max_luma value
+    """
+    bits = get_depth(clip)
+
+    def _get_props(clip: vs.VideoNode) -> dict[str, Any]:
+        with clip.get_frame(0) as frame:
+            return frame.props.copy()
+
+    if '--range' in params:
+        rng_param: int | str = params[params.index('--range') + 1]
+
+        rng_map = ['limited', 'full']
+
+        # TODO: Rewrite to use enums
+        if rng_param == '{range:d}':
+            rng_param = int(get_range(clip))  # type:ignore
+
+            try:
+                rng_param = rng_map[rng_param]
+            except IndexError:
+                raise VSColourRangeError(f"Unknown color range ({rng_param})!")
+
+        if isinstance(rng_param, str) and len(rng_param) == 1:
+            rng_param = int(rng_param)
+
+        if rng_param in ('limited', 0):
+            min_luma = 16 << (bits - 8)
+            max_luma = 235 << (bits - 8)
+        elif rng_param in ('full', 1):
+            min_luma = 0
+            max_luma = (1 << bits) - 1
+        else:
+            raise VSColourRangeError(f'Wrong range in parameters ({rng_param})!')
+    elif '_ColorRange' in (props := _get_props(clip)):
+        color_rng = props['_ColorRange']
+        if color_rng == 1:
+            min_luma = 16 << (bits - 8)
+            max_luma = 235 << (bits - 8)
+        elif color_rng == 0:
+            min_luma = 0
+            max_luma = (1 << bits) - 1
+        else:
+            raise VSColourRangeError(f'Wrong "_ColorRange" prop in the clip!')
+    else:
+        raise VSColourRangeError(f'Cannot guess the color range!')
+
+    return min_luma, max_luma
