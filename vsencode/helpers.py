@@ -7,7 +7,7 @@ from typing import Any, Sequence
 
 import vapoursynth as vs
 from lvsfunc.misc import source
-from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBDWAV64, PresetGeneric, Trim, VPath, VPSIdx
+from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBD, PresetBDWAV64, Trim, VPath, VPSIdx
 from vardautomation.exception import VSColourRangeError
 from vstools import get_prop, get_depth
 
@@ -75,7 +75,7 @@ def FileInfo(path: AnyPath, trims: list[Trim | DuplicateFrame] | Trim | None = N
     if preset is not None:
         preset = [preset] if not isinstance(preset, Sequence) else list(preset)
     else:
-        preset = [PresetGeneric]
+        preset = [PresetBD]
 
     if len(preset) == 1:
         preset.append(PresetBDWAV64)
