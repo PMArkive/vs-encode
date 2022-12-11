@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-import vapoursynth as vs
 from vardautomation import FileInfo2
-from vstools import FrameRangeN
+from vstools import FrameRangeN, vs
 
 from .encoder import EncodeRunner
 from .types import AUDIO_CODEC, VIDEO_CODEC

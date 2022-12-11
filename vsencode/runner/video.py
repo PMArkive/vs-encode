@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Tuple, cast
 
-import vapoursynth as vs
 from vardautomation import LosslessEncoder, VideoLanEncoder, VPath, logger
+from vstools import vs
 
 from ..exceptions import NoLosslessVideoEncoderError, NoVideoEncoderError
 from ..generate import VEncSettingsGenerator
@@ -66,8 +66,13 @@ class VideoRunner(BaseRunner):
             raise NoVideoEncoderError("Invalid video encoder given!")
 
         if zones:
-            # TODO: Add normalisation
-            zones = dict(sorted(zones.items()))
+            norm_zones = dict[Tuple[int, int], dict[str, Any]]()
+
+            for zone, setting in zones.items():
+                zone = (zone[0] or 0, zone[1] or self.clip.num_frames-1)
+                norm_zones |= {zone: setting}
+
+            zones = dict(sorted(norm_zones.items()))
 
         if settings is None:
             if verify_file_exists(f"_settings/{encoder}_settings"):

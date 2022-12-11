@@ -81,7 +81,7 @@ class X265Custom(X265):
 
         return super().set_variable() | {
             'chromaloc': get_prop(self.clip, '_ChromaLocation', int),
-            'crops': f"{get_prop(self.clip, '_crops', str, default='0,0,0,0')} --overscan crop",  # type:ignore
+            'crops': f"{get_prop(self.clip, '_crops', str, default='0,0,0,0')} --overscan crop",
             'lookahead': get_lookahead(self.clip),
             'range': get_range(self.clip),
             'sarden': sar[0],

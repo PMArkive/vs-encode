@@ -4,9 +4,9 @@ from copy import copy as shallow_copy
 from fractions import Fraction
 from typing import TYPE_CHECKING, Any, Dict, List, Type, cast
 
-import vapoursynth as vs
 from vardautomation import (AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, FDKAACEncoder,
                             FlacEncoder, OpusEncoder, PassthroughAudioEncoder, QAACEncoder, Trim, VPath, logger)
+from vstools import vs
 
 from ..audio import (check_aac_encoders_installed, get_track_info, iterate_ap_audio_files, iterate_cutter,
                      iterate_encoder, iterate_extractors, iterate_tracks, run_ap, set_eafile_properties,

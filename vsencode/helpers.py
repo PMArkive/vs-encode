@@ -5,11 +5,10 @@ import math
 import multiprocessing as mp
 from typing import Any, Sequence
 
-import vapoursynth as vs
 from lvsfunc.misc import source
 from vardautomation import AnyPath, DuplicateFrame, FileInfo2, Preset, PresetBD, PresetBDWAV64, Trim, VPath, VPSIdx
 from vardautomation.exception import VSColourRangeError
-from vstools import get_prop, get_depth
+from vstools import get_depth, get_prop, vs
 
 from .types import FilePath, PresetBackup
 

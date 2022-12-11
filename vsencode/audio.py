@@ -5,13 +5,11 @@ import shutil
 from fractions import Fraction
 from typing import Any, List, Sequence, Tuple, Type
 
-import vapoursynth as vs
-from vstools import normalize_ranges, FrameRangeN
 from pymediainfo import MediaInfo
-from vardautomation import (
-    JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame, Eac3toAudioExtracter,
-    FDKAACEncoder, FileInfo, FileInfo2, Lang, Preset, QAACEncoder, SoxCutter, Trim, VPath, logger
-)
+from vardautomation import (JAPANESE, AudioCutter, AudioEncoder, AudioExtracter, AudioTrack, DuplicateFrame,
+                            Eac3toAudioExtracter, FDKAACEncoder, FileInfo, FileInfo2, Lang, Preset, QAACEncoder,
+                            SoxCutter, Trim, VPath, logger)
+from vstools import FrameRangeN, normalize_ranges, vs
 
 from .exceptions import MissingDependenciesError
 from .types import PresetBackup

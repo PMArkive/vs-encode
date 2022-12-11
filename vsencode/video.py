@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
-import vapoursynth as vs
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
-from vstools import finalize_clip
+from vstools import vs
 
 from .codecs import X264Custom, X265Custom
 from .exceptions import FrameLengthMismatch, NoVideoEncoderError

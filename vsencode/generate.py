@@ -144,14 +144,15 @@ class IniSetup:
         if _parents > 1:
             try:  # Check if final split is the episode number or an NC.
                 final = file_name_split[-1]
-                if any(valid in final.lower() for valid in valid_file_values):
-                    int(final)
+
+                if not any(valid in final.lower() for valid in valid_file_values):
+                    raise ValueError()
             except ValueError:
                 raise ValueError("get_show_name: 'Please make sure your file name is structured like so: "
                                  f"\"showname{key}ep\" current: {os.path.splitext(caller_name)[0]}. "
                                  f"For specials, make sure it matches to one of the following: {valid_file_values}.\n"
                                  "This function expects you to follow these patterns to properly parse "
-                                 "all the information it needs!\n")
+                                 f"all the information it needs!\nCurrent name: {final}")
 
             file_name_split[0] = ''.join(f'{sn}{key}' for sn in file_name_split[:-_parents])
 

@@ -1,9 +1,8 @@
 from enum import Enum
 from typing import List
 
-import vapoursynth as vs
-from vstools import check_variable
 from vardautomation import JAPANESE, FileInfo2, Lang, logger
+from vstools import check_variable, vs
 
 from ..exceptions import AlreadyInChainError, NotEnoughValuesError
 from ..generate import IniSetup

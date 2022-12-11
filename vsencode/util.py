@@ -10,9 +10,9 @@ from functools import cache
 from pathlib import Path
 from typing import Iterable
 
-import vapoursynth as vs
 from vardautomation import VPath
 from vardautomation import get_vs_core as _get_vs_core
+from vstools import vs
 
 from .generate import IniSetup
 
