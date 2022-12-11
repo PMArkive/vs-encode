@@ -10,3 +10,5 @@
 /tests/output/*
 build/
 dist/
+*.mkv
+*test*
