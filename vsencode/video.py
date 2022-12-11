@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Tuple
 
 from vardautomation import FFV1, LosslessEncoder, NVEncCLossless, VideoLanEncoder
-from vstools import vs
+from vstools import finalize_clip, vs
 
 from .codecs import X264Custom, X265Custom
 from .exceptions import FrameLengthMismatch, NoVideoEncoderError
